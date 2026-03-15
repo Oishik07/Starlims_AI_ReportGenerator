@@ -1,4 +1,4 @@
-INSERT INTO sample (id, created_date, lab_technician, processed_date, sample_name, status) VALUES
+INSERT INTO samples (id, created_date, lab_technician, processed_date, sample_name, status) VALUES
 (1, '2026-02-06', 'Dr Roy', NULL, 'Blood_001', 'PENDING'),
 (2, '2026-02-09', 'Dr Sen', NULL, 'Urine_002', 'PENDING'),
 (3, '2026-02-11', 'Dr Das', '2026-02-19', 'Saliva_003', 'PROCESSED'),
