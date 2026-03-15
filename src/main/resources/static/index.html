@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STARLIMS Report Generator</title>
+    <!-- Professional Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS Library for genuine Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <!-- Minimal Starlims Header -->
+    <header class="app-header">
+        <!-- Ensure your logo is named logo.png in this folder -->
+        <img src="logo.png" alt="STARLIMS" class="brand-logo" id="starlimsLogo"
+             onerror="this.style.display='none'; document.getElementById('altLogo').style.display='block';">
+        <h1 id="altLogo" style="color:#0f4b8f; font-weight: 700; margin: 0; font-size: 24px;">STARLIMS</h1>
+
+        <div class="divider"></div>
+        <h2 class="app-title">REPORT GENERATOR</h2>
+    </header>
+
+    <!-- Professional Query Input -->
+    <div class="input-container">
+        <textarea id="promptInput" placeholder="Search sample data (e.g., Show me samples details that are 'processed' and created date is after 1st March, 2026)" rows="3"></textarea>
+
+        <div class="button-row">
+            <!-- Action Button with embedded CSS spinner -->
+            <button id="generateBtn" onclick="generateReport()" class="primary-btn">
+                <span id="btnText">Generate Report</span>
+                <div id="btnSpinner" class="spinner-ring" style="display: none;"></div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Messaging Area -->
+    <div id="statusMessage" class="status-alert" style="display: none;"></div>
+
+    <!-- Results Header & Excel Export -->
+    <div class="results-header" id="resultsHeader" style="display: none;">
+        <h3>Report</h3>
+        <button class="export-btn" onclick="exportToExcel()">Export to Excel</button>
+    </div>
+
+    <!-- Spreadsheet Data Table Area -->
+    <div class="data-grid" id="dataGrid" style="display: none;">
+        <div class="table-scroll-wrapper">
+            <table id="dataTable" class="lims-table">
+                <thead id="dataHead"></thead>
+                <tbody id="dataBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
