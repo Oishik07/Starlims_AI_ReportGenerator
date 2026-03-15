@@ -22,7 +22,7 @@ INSERT INTO samples (id, created_date, lab_technician, processed_date, sample_na
 
 
 
-INSERT INTO inventory (inventory_id, expiry_date, last_updated, quantity_ml, storage_location, storage_temperature, sample_id) VALUES
+INSERT INTO sample_inventory (inventory_id, expiry_date, last_updated, quantity_ml, storage_location, storage_temperature, sample_id) VALUES
 (1, '2026-09-01', '2026-03-01', 5.5, 'Freezer A1', '-20C', 21),
 (2, '2026-06-02', '2026-03-02', 3.2, 'Rack B1', '4C', 22),
 (3, '2026-12-03', '2026-03-03', 4.0, 'Freezer A2', '-80C', 23),
@@ -36,7 +36,7 @@ INSERT INTO inventory (inventory_id, expiry_date, last_updated, quantity_ml, sto
 
 
 
-INSERT INTO result (result_id, reference_range, result_status, result_value, test_type, unit, verified_by, verified_date, sample_id) VALUES
+INSERT INTO test_results (result_id, reference_range, result_status, result_value, test_type, unit, verified_by, verified_date, sample_id) VALUES
 (1, '70-120', 'NORMAL', '110', 'Glucose', 'mg/dL', 'Dr Sen', '2026-03-05', 23),
 (2, 'Normal', 'ABNORMAL', 'Low', 'CBC', '-', 'Dr Roy', '2026-03-06', 25),
 (3, 'Negative', 'NORMAL', 'Negative', 'PCR', '-', 'Dr Das', '2026-03-08', 27),
