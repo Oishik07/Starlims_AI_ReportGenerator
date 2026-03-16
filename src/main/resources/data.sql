@@ -17,7 +17,18 @@ INSERT INTO samples (id, created_date, lab_technician, processed_date, sample_na
 (16, '2026-02-08', 'Dr Roy', '2026-02-17', 'Blood_016', 'PROCESSED'),
 (17, '2026-02-12', 'Dr Sen', NULL, 'Urine_017', 'IN_PROGRESS'),
 (18, '2026-02-04', 'Dr Das', NULL, 'Saliva_018', 'PENDING'),
-(19, '2026-02-15', 'Dr Roy', '2026-02-18', 'Plasma_019', 'PROCESSED');
+(19, '2026-02-15', 'Dr Roy', '2026-02-18', 'Plasma_019', 'PROCESSED'),
+(20, '2026-02-07', 'Dr Sen', NULL, 'Serum_020', 'PENDING'),
+(21, '2026-02-17', 'Dr Das', '2026-02-21', 'Blood_021', 'PROCESSED'),
+(22, '2026-01-29', 'Dr Roy', NULL, 'Urine_022', 'PENDING'),
+(23, '2026-02-06', 'Dr Sen', '2026-02-10', 'Saliva_023', 'PROCESSED'),
+(24, '2026-02-19', 'Dr Das', NULL, 'Plasma_024', 'IN_PROGRESS'),
+(25, '2026-02-02', 'Dr Roy', '2026-02-05', 'Serum_025', 'PROCESSED'),
+(26, '2026-02-11', 'Dr Sen', NULL, 'Blood_026', 'PENDING'),
+(27, '2026-01-25', 'Dr Das', '2026-01-30', 'Urine_027', 'PROCESSED'),
+(28, '2026-02-16', 'Dr Roy', NULL, 'Saliva_028', 'IN_PROGRESS'),
+(29, '2026-02-09', 'Dr Sen', '2026-02-14', 'Plasma_029', 'PROCESSED'),
+(30, '2026-02-18', 'Dr Das', NULL, 'Serum_030', 'PENDING');
 
 
 
