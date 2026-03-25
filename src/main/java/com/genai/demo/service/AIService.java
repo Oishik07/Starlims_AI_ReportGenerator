@@ -143,6 +143,7 @@ public class AIService {
 
         var resp= chatClient
                 .prompt()
+                .system("Return ONLY raw SQL query compatible to POSTGRES SQL. Do not include markdown, code blocks, or explanations.")
                 .user(userQuery)
                 .advisors(new SimpleLoggerAdvisor())
                 .call()
