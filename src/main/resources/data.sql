@@ -53,5 +53,7 @@ INSERT INTO test_results (result_id, reference_range, result_status, result_valu
 (3, 'Negative', 'NORMAL', 'Negative', 'PCR', '-', 'Dr Das', '2026-03-08', 27),
 (4, '<200', 'ABNORMAL', '220', 'Cholesterol', 'mg/dL', 'Dr Roy', '2026-03-12', 30);
 
+-- Reset the sequence to avoid collisions
+SELECT setval('samples_id_seq', (SELECT MAX(id) FROM samples) + 1);
 
 
