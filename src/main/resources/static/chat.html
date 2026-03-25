@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Assistant – STARLIMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sl-blue: #0f4b8f;
+            --hover-blue: #165ab7;
+            --background-gray: #e6f0fa;
+            --surface-white: #ffffff;
+            --border-soft: #dfe1e6;
+            --text-primary: #172b4d;
+            --text-muted: #5e6c84;
+            --user-bubble: #0f4b8f;
+            --ai-bubble: #f4f5f7;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--background-gray);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ─── Header ─────────────────────────────────── */
+        .chat-header {
+            background: var(--surface-white);
+            border-bottom: 1px solid var(--border-soft);
+            border-top: 4px solid var(--sl-blue);
+            padding: 0.85rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(9,30,66,0.06);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--sl-blue);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+        .back-btn:hover { background: #e6f0fa; }
+
+        .header-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-soft);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .header-logo {
+            height: 34px;
+            object-fit: contain;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6cf00e;
+            box-shadow: 0 0 0 2px rgba(46,125,50,0.2);
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        /* ─── Chat Window ─────────────────────────────── */
+        .chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            scroll-behavior: smooth;
+        }
+
+        /* ─── Welcome Banner ──────────────────────────── */
+        .welcome-banner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 2.5rem 1rem;
+            text-align: center;
+            animation: fadeUp 0.5s ease-out;
+        }
+
+        .welcome-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--sl-blue), #1e88e5);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(15,75,143,0.25);
+        }
+
+        .welcome-icon svg { color: white; }
+
+        .welcome-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .welcome-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 420px;
+            line-height: 1.5;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+
+        .chip {
+            background: var(--surface-white);
+            border: 1px solid var(--border-soft);
+            border-radius: 20px;
+            padding: 0.45rem 1rem;
+            font-size: 0.82rem;
+            color: var(--sl-blue);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.18s;
+        }
+
+        .chip:hover {
+            background: #e6f0fa;
+            border-color: var(--sl-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(15,75,143,0.12);
+        }
+
+        /* ─── Message Bubbles ─────────────────────────── */
+        .message-row {
+            display: flex;
+            gap: 0.75rem;
+            animation: fadeUp 0.3s ease-out;
+        }
+
+        .message-row.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            margin-top: 2px;
+        }
+
+        .avatar.ai  { background: linear-gradient(135deg, var(--sl-blue), #1e88e5); }
+        .avatar.usr { background: #546e7a; }
+
+        .bubble {
+            max-width: 70%;
+            padding: 0.9rem 1.1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        .bubble.ai {
+            background: var(--surface-white);
+            border: 1px solid var(--border-soft);
+            border-radius: 4px 12px 12px 12px;
+            color: var(--text-primary);
+            box-shadow: 0 1px 4px rgba(9,30,66,0.06);
+        }
+
+        .bubble.user {
+            background: var(--user-bubble);
+            color: white;
+            border-radius: 12px 4px 12px 12px;
+            box-shadow: 0 2px 8px rgba(15,75,143,0.2);
+        }
+
+        /* ─── Typing Indicator ────────────────────────── */
+        .typing-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            animation: fadeUp 0.3s ease-out;
+        }
+
+        .typing-bubble {
+            background: var(--surface-white);
+            border: 1px solid var(--border-soft);
+            border-radius: 4px 12px 12px 12px;
+            padding: 0.75rem 1.1rem;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            background: var(--sl-blue);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: blink 1.2s infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.4; }
+            40%            { transform: scale(1.1); opacity: 1;   }
+        }
+
+        /* ─── Input Bar ───────────────────────────────── */
+        .input-bar {
+            background: var(--surface-white);
+            border-top: 1px solid var(--border-soft);
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+            flex-shrink: 0;
+            box-shadow: 0 -2px 8px rgba(9,30,66,0.04);
+        }
+
+        #messageInput {
+            flex: 1;
+            resize: none;
+            border: 1px solid var(--border-soft);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 0.92rem;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            background: #fafbfc;
+            outline: none;
+            min-height: 48px;
+            max-height: 150px;
+            overflow-y: auto;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            line-height: 1.5;
+        }
+
+        #messageInput:focus {
+            border-color: var(--sl-blue);
+            background: var(--surface-white);
+            box-shadow: inset 0 0 0 1px var(--sl-blue), 0 2px 4px rgba(15,75,143,0.1);
+        }
+
+        #sendBtn {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: none;
+            background: var(--sl-blue);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 2px 6px rgba(15,75,143,0.25);
+        }
+
+        #sendBtn:hover { background: var(--hover-blue); transform: translateY(-1px); }
+        #sendBtn:disabled { background: #b3d4ff; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* ─── Mic Button ──────────────────────────────── */
+        #micBtn {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-soft);
+            background: var(--surface-white);
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.1s;
+        }
+        #micBtn:hover { background: #e6f0fa; border-color: var(--sl-blue); color: var(--sl-blue); }
+        #micBtn.listening {
+            background: #fff0f0;
+            border-color: #e53935;
+            color: #e53935;
+            animation: micPulse 1s ease-in-out infinite;
+        }
+        #micBtn:disabled { opacity: 0.4; cursor: not-allowed; animation: none; }
+        @keyframes micPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.4); }
+            50%       { box-shadow: 0 0 0 7px rgba(229,57,53,0); }
+        }
+
+        /* ─── Animations ──────────────────────────────── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0);    }
+        }
+
+        /* ─── Scrollbar ───────────────────────────────── */
+        .chat-window::-webkit-scrollbar { width: 6px; }
+        .chat-window::-webkit-scrollbar-track { background: transparent; }
+        .chat-window::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 4px; }
+        .chat-window::-webkit-scrollbar-thumb:hover { background: #c0c4cc; }
+    </style>
+</head>
+<body>
+
+<!-- ═══ Header ═══════════════════════════════════════════ -->
+<header class="chat-header">
+    <a href="index.html" class="back-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        Back
+    </a>
+    <div class="header-divider"></div>
+    <div class="header-brand">
+        <img src="logo.png" alt="STARLIMS" class="header-logo"
+             id="hdrLogo" onerror="this.style.display='none'; document.getElementById('hdrAlt').style.display='block';">
+        <span id="hdrAlt" style="display:none;font-weight:700;color:#0f4b8f;font-size:18px;">STARLIMS</span>
+        <div>
+            <div class="header-title">AI Chat Assistant</div>
+            <div class="header-subtitle">Powered by Spring AI</div>
+        </div>
+    </div>
+    <div class="status-dot" title="Online"></div>
+</header>
+
+<!-- ═══ Chat Window ══════════════════════════════════════ -->
+<div class="chat-window" id="chatWindow">
+
+    <!-- Welcome Banner (hidden once conversation starts) -->
+    <div class="welcome-banner" id="welcomeBanner">
+        <div class="welcome-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+                 stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div class="welcome-title">Hello, I'm your AI Assistant</div>
+        <div class="welcome-subtitle">I can help you query and understand your LIMS data. Try asking me anything!</div>
+        <div class="suggestion-chips">
+            <div class="chip" onclick="useChip(this)">Create me a new sample</div>
+            <div class="chip" onclick="useChip(this)">Show me the sample details of sample ID 19</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══ Input Bar ════════════════════════════════════════ -->
+<div class="input-bar">
+    <textarea id="messageInput" placeholder="Ask me anything about your LIMS data…" rows="1"></textarea>
+    <!-- Mic Button (Web Speech API – no external library) -->
+    <button id="micBtn" onclick="toggleVoice()" title="Speak your query">
+        <!-- Mic icon (default) -->
+        <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8"  y1="23" x2="16" y2="23"></line>
+        </svg>
+        <!-- Stop icon (shown while listening) -->
+        <svg id="stopIcon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="currentColor" stroke="none" style="display:none;">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+        </svg>
+    </button>
+    <button id="sendBtn" onclick="sendMessage()" title="Send">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+    </button>
+</div>
+
+<script>
+    const chatWindow   = document.getElementById('chatWindow');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn      = document.getElementById('sendBtn');
+    const welcomeBanner = document.getElementById('welcomeBanner');
+
+    let isFirstMessage = true;
+
+    /* ── Auto-resize textarea ─────────────────────────── */
+    messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 150) + 'px';
+    });
+
+    /* ── Send on Enter (Shift+Enter = newline) ────────── */
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    /* ── Suggestion chips ─────────────────────────────── */
+    function useChip(el) {
+        messageInput.value = el.textContent;
+        messageInput.dispatchEvent(new Event('input'));
+        sendMessage();
+    }
+
+    /* ── Append a message bubble ─────────────────────── */
+    function appendMessage(role, text) {
+        if (isFirstMessage) {
+            welcomeBanner.style.display = 'none';
+            isFirstMessage = false;
+        }
+
+        const row = document.createElement('div');
+        row.className = `message-row ${role}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = `avatar ${role === 'user' ? 'usr' : 'ai'}`;
+        avatar.textContent = role === 'user' ? 'You' : 'AI';
+
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${role === 'user' ? 'user' : 'ai'}`;
+        bubble.textContent = text;
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        chatWindow.appendChild(row);
+        scrollToBottom();
+        return bubble;
+    }
+
+    /* ── Show/hide typing indicator ──────────────────── */
+    let typingRow = null;
+
+    function showTyping() {
+        typingRow = document.createElement('div');
+        typingRow.className = 'typing-row';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar ai';
+        avatar.textContent = 'AI';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'typing-bubble';
+        bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+
+        typingRow.appendChild(avatar);
+        typingRow.appendChild(bubble);
+        chatWindow.appendChild(typingRow);
+        scrollToBottom();
+    }
+
+    function hideTyping() {
+        if (typingRow) { typingRow.remove(); typingRow = null; }
+    }
+
+    function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    /* ── Main send function ───────────────────────────── */
+    async function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        // Show user message
+        appendMessage('user', text);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+
+        // Disable input while waiting
+        sendBtn.disabled = true;
+        messageInput.disabled = true;
+        showTyping();
+
+        try {
+            const response = await fetch('/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: text
+            });
+
+            hideTyping();
+
+            if (!response.ok) {
+                appendMessage('ai', `⚠️ Error ${response.status}: ${response.statusText}. Please try again.`);
+            } else {
+                const reply = await response.text();
+                appendMessage('ai', reply || '(No response received)');
+            }
+        } catch (err) {
+            hideTyping();
+            appendMessage('ai', '⚠️ Could not connect to the AI service. Please check that the server is running and try again.');
+            console.error('Chat error:', err);
+        } finally {
+            sendBtn.disabled = false;
+            messageInput.disabled = false;
+            messageInput.focus();
+        }
+    }
+
+    /* ══════════════════════════════════════════════════
+       VOICE INPUT  –  Web Speech API (no external libs)
+    ══════════════════════════════════════════════════ */
+    const micBtn   = document.getElementById('micBtn');
+    const micIcon  = document.getElementById('micIcon');
+    const stopIcon = document.getElementById('stopIcon');
+
+    // Check browser support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        // Browser doesn't support – hide mic button gracefully
+        micBtn.style.display = 'none';
+        console.warn('Web Speech API not supported in this browser.');
+    }
+
+    let recognition  = null;
+    let isListening  = false;
+
+    function toggleVoice() {
+        if (isListening) {
+            stopListening();
+        } else {
+            startListening();
+        }
+    }
+
+    function startListening() {
+        recognition = new SpeechRecognition();
+        recognition.lang      = 'en-US';   // language
+        recognition.interimResults = true; // show live partial results
+        recognition.maxAlternatives = 1;
+
+        // Live interim transcript → fills textarea in real time
+        recognition.onresult = (event) => {
+            let interim = '';
+            let final   = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const t = event.results[i][0].transcript;
+                if (event.results[i].isFinal) final += t;
+                else interim += t;
+            }
+            messageInput.value = final || interim;
+            messageInput.dispatchEvent(new Event('input')); // trigger auto-resize
+        };
+
+        // Speech ended → auto-send if there's text
+        recognition.onend = () => {
+            setListeningState(false);
+            const text = messageInput.value.trim();
+            if (text) sendMessage();
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            setListeningState(false);
+            if (event.error === 'not-allowed') {
+                appendMessage('ai', '⚠️ Microphone access was denied. Please allow microphone permission in your browser and try again.');
+            } else if (event.error !== 'no-speech') {
+                appendMessage('ai', `⚠️ Voice input error: ${event.error}. Please try again.`);
+            }
+        };
+
+        try {
+            recognition.start();
+            setListeningState(true);
+            messageInput.value = '';
+            messageInput.placeholder = '🎙️ Listening… speak now';
+        } catch (e) {
+            console.error('Could not start recognition:', e);
+            setListeningState(false);
+        }
+    }
+
+    function stopListening() {
+        if (recognition) recognition.stop();
+        setListeningState(false);
+    }
+
+    function setListeningState(active) {
+        isListening = active;
+        micBtn.classList.toggle('listening', active);
+        micIcon.style.display  = active ? 'none'  : 'block';
+        stopIcon.style.display = active ? 'block' : 'none';
+        micBtn.title = active ? 'Stop listening' : 'Speak your query';
+        if (!active) messageInput.placeholder = 'Ask me anything about your LIMS data…';
+    }
+</script>
+</body>
+</html>

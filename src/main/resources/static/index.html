@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STARLIMS Report Generator</title>
+    <title>STARLIMS AI Report Generator</title>
     <!-- Professional Typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
     <!-- SheetJS Library for genuine Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -21,14 +21,19 @@
         <h1 id="altLogo" style="color:#0f4b8f; font-weight: 700; margin: 0; font-size: 24px;">STARLIMS</h1>
 
         <div class="divider"></div>
-        <h2 class="app-title">REPORT GENERATOR</h2>
+        <h2 class="app-title">AI REPORT GENERATOR</h2>
     </header>
 
     <!-- Professional Query Input -->
     <div class="input-container">
         <textarea id="promptInput" placeholder="Search sample data (e.g., Show me samples details that are 'processed' and created date is after 1st March, 2026)" rows="3"></textarea>
 
-        <div class="button-row">
+        <div class="button-row" style="gap: 1.5rem;">
+            <!-- AI Chat Assistant Navigation Button -->
+            <button onclick="window.location.href='chat.html'" class="chat-nav-btn" title="Open AI Chat Assistant">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                AI Chat Assistant
+            </button>
             <!-- Action Button with embedded CSS spinner -->
             <button id="generateBtn" onclick="generateReport()" class="primary-btn">
                 <span id="btnText">Generate Report</span>

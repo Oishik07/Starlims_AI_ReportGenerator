@@ -1,13 +1,18 @@
 package com.genai.demo.service;
 
 import com.genai.demo.dto.LangCacheResponse;
+import com.genai.demo.dto.SampleDTO;
+import com.genai.demo.entity.Sample;
+import com.genai.demo.repository.SampleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ResponseEntity;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.print.Doc;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +21,7 @@ import java.util.Map;
 public class AIService {
 
     private final ChatClient chatClient;
+    private final SampleRepository repository;
 
     /*private final EmbeddingModel embeddingModel;
 
@@ -105,6 +111,33 @@ public class AIService {
 
         return response;
     }*/
+
+    public String createSample(String sampleName, String labTechnician){
+
+        if(labTechnician == null
+                || labTechnician.isBlank()
+                || labTechnician.equalsIgnoreCase("John Doe")
+                || labTechnician.equalsIgnoreCase("Unknown")
+                || labTechnician.equalsIgnoreCase("N/A")){
+            return null;
+        }
+
+        Sample sample = new Sample();
+        sample.setSampleName(sampleName);
+        sample.setLabTechnician(labTechnician);
+        sample.setStatus("CREATED");
+        sample.setCreatedDate(LocalDate.now());
+
+        Sample saved = repository.save(sample);
+
+        return
+                saved.getId().toString();
+    }
+
+    public Sample getSample(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Sample not found"));
+    }
 
     public String generateSQL(String userQuery){
 

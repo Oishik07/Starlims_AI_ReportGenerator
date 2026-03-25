@@ -100,6 +100,7 @@ textarea:focus {
 .button-row {
     display: flex;
     justify-content: flex-end;
+    gap: 1.5rem;
     margin-top: 1rem;
 }
 
@@ -129,6 +130,29 @@ textarea:focus {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+/* AI Chat Assistant navigation button (secondary, outlined) */
+.chat-nav-btn {
+    background-color: var(--surface-white);
+    color: var(--sl-blue);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.8rem 1.5rem;
+    border: 1.5px solid var(--sl-blue);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-right: 1.5rem;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+
+.chat-nav-btn:hover {
+    background-color: #e6f0fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(15, 75, 143, 0.15);
 }
 
 /* Spinner */
