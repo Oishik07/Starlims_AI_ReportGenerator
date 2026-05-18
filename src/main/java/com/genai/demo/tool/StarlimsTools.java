@@ -1,11 +1,16 @@
 package com.genai.demo.tool;
 
+import com.genai.demo.dto.SampleDTO;
 import com.genai.demo.entity.Sample;
 import com.genai.demo.service.AIService;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
+import org.aspectj.lang.annotation.RequiredTypes;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 @Component
 @RequiredArgsConstructor
@@ -17,7 +22,7 @@ public class StarlimsTools {
     public String createSample(@ToolParam(description = "Sample name (Required Parameter). If not present, please ask the user to provide it.") String sampleName,
 
                                @ToolParam(description = "Lab Technician name (Required Parameter). If not present, please ask the user to provide it but DO NOT GUESS IT OR FIND FROM YOUR KNOWLEDGE BASE.") String labTechnician
-                               ){
+    ){
 
         if(labTechnician==null || labTechnician.length()==0){
             return ("No Lab Technician Name Found. Please provide it");
@@ -28,7 +33,7 @@ public class StarlimsTools {
     @Tool(name = "get_sample", description = "Returns the sample details of a particular sampleId")
     public Sample getSample(@ToolParam(description = "Sample ID (Required Parameter). If not present, please ask the user to provide it.") Long sampleId
     ){
-            return aiService.getSample(sampleId);
+        return aiService.getSample(sampleId);
     }
 }
 

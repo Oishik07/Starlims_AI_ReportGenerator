@@ -4,64 +4,174 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>STARLIMS AI Report Generator</title>
-    <!-- Professional Typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2">
-    <!-- SheetJS Library for genuine Excel export -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=16">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
+<!-- ── Siri/Gemini border glow (shown during processing) ── -->
+<div class="border-glow" id="borderGlow">
+    <div class="glow-bar glow-top"></div>
+    <div class="glow-bar glow-right"></div>
+    <div class="glow-bar glow-bottom"></div>
+    <div class="glow-bar glow-left"></div>
+</div>
+
+<!-- ── Centered processing overlay ── -->
+<div class="proc-overlay" id="procOverlay">
+    <div class="proc-card">
+        <div class="proc-brand">
+            <span>STARLIMS AI</span>
+        </div>
+        <p class="proc-subtitle" id="procSubtitle">Analyzing your request…</p>
+
+        <!-- Progress bar -->
+        <div class="proc-progress-wrap">
+            <div class="proc-progress-label">
+                <span>Progress</span>
+                <span id="procProgressPct">0%</span>
+            </div>
+            <div class="proc-progress-track">
+                <div class="proc-progress-fill" id="procProgressFill"></div>
+            </div>
+        </div>
+
+        <ul id="overlayStepsList" class="overlay-steps"></ul>
+    </div>
+</div>
+
 <div class="app-wrapper">
-    <!-- Minimal Starlims Header -->
+
+    <!-- Header -->
     <header class="app-header">
-        <!-- Ensure your logo is named logo.png in this folder -->
         <img src="logo.png" alt="STARLIMS" class="brand-logo" id="starlimsLogo"
              onerror="this.style.display='none'; document.getElementById('altLogo').style.display='block';">
-        <h1 id="altLogo" style="color:#0f4b8f; font-weight: 700; margin: 0; font-size: 24px;">STARLIMS</h1>
-
+        <h1 id="altLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:22px; display:none;">STARLIMS</h1>
         <div class="divider"></div>
         <h2 class="app-title">AI REPORT GENERATOR</h2>
     </header>
 
-    <!-- Professional Query Input -->
-    <div class="input-container">
-        <textarea id="promptInput" placeholder="Search sample data (e.g., Show me samples details that are 'processed' and created date is after 1st March, 2026)" rows="3"></textarea>
+    <!-- Two-column body -->
+    <div class="page-body">
 
-        <div class="button-row" style="gap: 1.5rem;">
-            <!-- AI Chat Assistant Navigation Button -->
-            <button onclick="window.location.href='chat.html'" class="chat-nav-btn" title="Open AI Chat Assistant">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                AI Chat Assistant
-            </button>
-            <!-- Action Button with embedded CSS spinner -->
-            <button id="generateBtn" onclick="generateReport()" class="primary-btn">
-                <span id="btnText">Generate Report</span>
-                <div id="btnSpinner" class="spinner-ring" style="display: none;"></div>
-            </button>
+        <!-- LEFT: Main content -->
+        <div class="main-col">
+            <div class="input-container">
+                <textarea id="promptInput" placeholder="Describe what you need — e.g. Show samples processed after March 2026 with abnormal test results" rows="3"></textarea>
+                <div class="button-row">
+                    <button onclick="window.location.href='chat.html'" class="chat-nav-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        AI Chat
+                    </button>
+                    <button id="generateBtn" onclick="generateReport()" class="primary-btn">
+                        <span id="btnText">Generate Report</span>
+                        <div id="btnSpinner" class="spinner-ring" style="display:none;"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="status-alert" style="display:none;"></div>
+
+            <div class="results-header" id="resultsHeader" style="display:none;">
+                <h3>Report</h3>
+                <button class="export-btn" onclick="exportToExcel()">Export to Excel</button>
+            </div>
+
+            <div class="data-grid" id="dataGrid" style="display:none;">
+                <div class="table-scroll-wrapper">
+                    <table id="dataTable" class="lims-table">
+                        <thead id="dataHead"></thead>
+                        <tbody id="dataBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Alert Messaging Area -->
-    <div id="statusMessage" class="status-alert" style="display: none;"></div>
+        <!-- RIGHT: AI Insights Panel -->
+        <aside class="ai-panel" id="aiPanel" style="display:none;">
 
-    <!-- Results Header & Excel Export -->
-    <div class="results-header" id="resultsHeader" style="display: none;">
-        <h3>Report</h3>
-        <button class="export-btn" onclick="exportToExcel()">Export to Excel</button>
-    </div>
+            <div class="ai-panel-header">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                AI Insights
+            </div>
 
-    <!-- Spreadsheet Data Table Area -->
-    <div class="data-grid" id="dataGrid" style="display: none;">
-        <div class="table-scroll-wrapper">
-            <table id="dataTable" class="lims-table">
-                <thead id="dataHead"></thead>
-                <tbody id="dataBody"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
+            <!-- Processing steps (sidebar version, shown during loading) -->
+            <div id="reasoningSection" style="display:none;">
+                <div class="ai-section">
+                    <span class="ai-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        Processing
+                    </span>
+                    <ul id="reasoningList" class="reasoning-list"></ul>
+                </div>
+            </div>
 
-<script src="script.js"></script>
+            <!-- Results (shown after load) -->
+            <div id="resultsSection" style="display:none;">
+
+                <!-- Summary -->
+                <div class="ai-section">
+                    <span class="ai-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Summary
+                    </span>
+                    <p id="sqlSummary" class="ai-body-text"></p>
+                </div>
+
+                <!-- SQL -->
+                <div class="ai-section">
+                    <span class="ai-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        Generated SQL
+                    </span>
+                    <pre id="sqlDisplay" class="ai-sql-pre"></pre>
+                    <div class="sql-safety-badge">
+                        🛡️ Safe SQL Verified
+                    </div>
+                </div>
+
+                <!-- Confidence -->
+                <div class="ai-section">
+                    <span class="ai-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Confidence
+                    </span>
+                    <div id="confidenceBadge" class="confidence-badge-wrap"></div>
+                    <p id="confidenceReason" class="ai-body-text confidence-reason-text"></p>
+                    <div class="confidence-factors">
+                        <span class="factor-chip">Schema Alignment</span>
+                        <span class="factor-chip">Query Clarity</span>
+                        <span class="factor-chip">Retrieval Accuracy</span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="ai-footer">
+                    <div class="footer-stat">
+                        <span class="footer-key">Latency</span>
+                        <span id="latencyValue" class="footer-val">—</span>
+                    </div>
+                    <div class="footer-divider"></div>
+                    <div class="footer-stat">
+                        <span class="footer-key">Model</span>
+                        <span id="modelValue" class="footer-val">—</span>
+                    </div>
+                </div>
+
+                <!-- Compliance Footer -->
+                <div class="ai-compliance-footer">
+                    AI-generated outputs should be reviewed before operational decisions.
+                </div>
+
+            </div><!-- /resultsSection -->
+
+        </aside>
+
+    </div><!-- /page-body -->
+
+</div><!-- /app-wrapper -->
+
+<script src="script.js?v=16"></script>
 </body>
 </html>

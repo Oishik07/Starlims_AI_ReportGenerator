@@ -1,5 +1,7 @@
 package com.genai.demo.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genai.demo.dto.LangCacheResponse;
 import com.genai.demo.dto.SampleDTO;
 import com.genai.demo.entity.Sample;
@@ -139,16 +141,51 @@ public class AIService {
                 .orElseThrow(() -> new RuntimeException("Sample not found"));
     }
 
-    public String generateSQL(String userQuery){
+    /**
+     * Single AI call that returns both the SQL query and a plain-English
+     * summary explaining it to scientists. Response is parsed from JSON.
+     */
+    public Map<String, String> generateSqlWithSummary(String userQuery) {
 
-        var resp= chatClient
+        var resp = chatClient
                 .prompt()
-                .system("Return ONLY raw SQL query compatible to POSTGRES SQL. Do not include markdown, code blocks, or explanations.")
                 .user(userQuery)
                 .advisors(new SimpleLoggerAdvisor())
                 .call()
                 .content();
 
-        return resp.toString();
+        return parseSqlAndSummary(resp.toString());
+    }
+
+
+    /**
+     * Parses the AI JSON response into sql + summary.
+     * Falls back gracefully if the model doesn't return valid JSON.
+     */
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Parses the AI JSON response into sql, summary, confidence, and reason.
+     * Uses Jackson for robustness. Falls back gracefully on parse failure.
+     */
+    private Map<String, String> parseSqlAndSummary(String raw) {
+        try {
+            // Find the JSON block — strip any surrounding markdown or prose
+            int start = raw.indexOf('{');
+            int end   = raw.lastIndexOf('}');
+            if (start == -1 || end == -1) throw new RuntimeException("No JSON object found");
+            String jsonStr = raw.substring(start, end + 1);
+
+            JsonNode node = MAPPER.readTree(jsonStr);
+            return Map.of(
+                    "sql",        node.path("sql").asText(""),
+                    "summary",    node.path("summary").asText(""),
+                    "confidence", node.path("confidence").asText("medium"),
+                    "reason",     node.path("reason").asText("")
+            );
+        } catch (Exception e) {
+            // Fallback: treat the whole response as raw SQL
+            return Map.of("sql", raw.trim(), "summary", "", "confidence", "medium", "reason", "");
+        }
     }
 }

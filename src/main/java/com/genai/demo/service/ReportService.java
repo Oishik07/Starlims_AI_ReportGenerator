@@ -1,6 +1,7 @@
 package com.genai.demo.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,30 +16,53 @@ public class ReportService{
     private final JdbcTemplate jdbcTemplate;
     private final AIService aiService;
 
-    public List<Map<String, Object>> generateReport(String userPrompt) {
+    @Value("${spring.ai.openai.chat.options.model:qwen/qwen-2.5-72b-instruct}")
+    private String modelName;
 
+
+    public Map<String, Object> generateReport(String userPrompt) {
         try {
-            // 1️⃣ Build structured prompt for LLM
-            String finalPrompt = buildPrompt(userPrompt);
-
-            // 2️⃣ Call LLM → Generate SQL
-            String generatedSql = aiService.generateSQL(finalPrompt);
-
-            log.info("Generated SQL: {}", generatedSql);
-
-            // 3️⃣ Validate SQL (CRITICAL)
-            validateSQL(generatedSql);
-
-            // 4️⃣ Execute SQL
-            List<Map<String, Object>> result =
-                    jdbcTemplate.queryForList(generatedSql);
-
-            return result;
-
+            Map<String, String> step1 = generateValidatedSql(userPrompt);
+            return executeReport(userPrompt, step1.get("sql"), step1.get("summary"),
+                    step1.get("confidence"), step1.get("reason"));
         } catch (Exception e) {
             log.error("Error generating report", e);
             throw new RuntimeException("Failed to generate report");
         }
+    }
+
+    // ============================
+    // 🔹 Step 1: Generate + Validate SQL only
+    // ============================
+    public Map<String, String> generateValidatedSql(String userPrompt) {
+        String finalPrompt = buildPrompt(userPrompt);
+        Map<String, String> result = aiService.generateSqlWithSummary(finalPrompt);
+        String cleanedSql = cleanSql(result.get("sql"));
+        validateSQL(cleanedSql);
+        log.info("Step — SQL: {}, Confidence: {}", cleanedSql, result.get("confidence"));
+        return Map.of(
+                "sql",        cleanedSql,
+                "summary",    result.getOrDefault("summary", ""),
+                "confidence", result.getOrDefault("confidence", "medium"),
+                "reason",     result.getOrDefault("reason", "")
+        );
+    }
+
+    // ============================
+    // 🔹 Step 2: Execute SQL + enrich response
+    // ============================
+    public Map<String, Object> executeReport(String userPrompt, String validatedSql,
+                                             String summary, String confidence, String reason) {
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(validatedSql);
+        log.info("Step — Executed SQL. Rows: {}", result.size());
+        return Map.of(
+                "sql",        validatedSql,
+                "data",       result,
+                "summary",    summary    != null ? summary    : "",
+                "confidence", confidence != null ? confidence : "medium",
+                "reason",     reason     != null ? reason     : "",
+                "model",      modelName
+        );
     }
 
     // ============================
@@ -179,6 +203,14 @@ public class ReportService{
                 - Expired samples are identified when expiry_date < CURRENT_DATE.
                 - Abnormal test results are identified when result_status = 'ABNORMAL'.
 
+                Respond ONLY with a valid JSON object in this exact format (no markdown, no explanation outside the JSON):
+                {
+                  "sql": "<the complete PostgreSQL SELECT query with newlines as \n>",
+                  "summary": "<2-3 sentence plain-English explanation for a scientist: which table, what filters, what will be returned>",
+                  "confidence": "<high | medium | low — based on how clearly the user request maps to the schema>",
+                  "reason": "<1 sentence explaining the confidence level in terms of schema alignment, query clarity, and retrieval accuracy>"
+                }
+
                 User request:
                 "%s"
                 """.formatted(userPrompt);
@@ -211,5 +243,23 @@ public class ReportService{
                 throw new RuntimeException("Dangerous SQL detected");
             }
         }
+    }
+
+    // ============================
+    // 🔹 SQL Cleaner (strips markdown code fences)
+    // ============================
+    private String cleanSql(String rawSql) {
+        if (rawSql == null) return "";
+
+        String cleaned = rawSql.trim();
+
+        // Remove ```sql ... ``` or ``` ... ```
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", ""); // strip opening fence
+            cleaned = cleaned.replaceAll("```$", "");               // strip closing fence
+            cleaned = cleaned.trim();
+        }
+
+        return cleaned;
     }
 }

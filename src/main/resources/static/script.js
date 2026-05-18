@@ -1,208 +1,290 @@
 let globalReportData = null;
 
-async function generateReport() {
-    const promptValue = document.getElementById('promptInput').value.trim();
-    const btn = document.getElementById('generateBtn');
-    const btnText = document.getElementById('btnText');
-    const spinner = document.getElementById('btnSpinner');
-    const statusMsg = document.getElementById('statusMessage');
+const REASONING_STEPS = [
+    'Understanding your request',
+    'Identifying relevant tables',
+    'Applying filters and conditions',
+    'Generating optimized SQL',
+    'Validating query safety',
+    'Fetching results'
+];
 
-    // UI Panels
+// ── Helpers ───────────────────────────────────────────────────
+function delay(ms)               { return new Promise(r => setTimeout(r, ms)); }
+function randomBetween(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function markStep(i) {
+    // Sidebar steps
+    const sItems = document.querySelectorAll('#reasoningList .reasoning-step');
+    if (sItems[i]) sItems[i].classList.add('visible');
+    // Overlay steps
+    const oItems = document.querySelectorAll('#overlayStepsList .overlay-step');
+    if (oItems[i]) oItems[i].classList.add('visible');
+
+    // ── Progress bar ──────────────────────────────────────────
+    const totalSteps  = REASONING_STEPS.length;          // 6
+    const pct         = Math.round(((i + 1) / totalSteps) * 100);
+    const fillEl      = document.getElementById('procProgressFill');
+    const pctEl       = document.getElementById('procProgressPct');
+    if (fillEl) fillEl.style.width = pct + '%';
+    if (pctEl)  pctEl.textContent  = pct + '%';
+}
+
+async function markStepAfter(i, ms) { await delay(ms); markStep(i); }
+// ──────────────────────────────────────────────────────────────
+
+async function generateReport() {
+    const promptValue   = document.getElementById('promptInput').value.trim();
+    const btn           = document.getElementById('generateBtn');
+    const btnText       = document.getElementById('btnText');
+    const spinner       = document.getElementById('btnSpinner');
+    const statusMsg     = document.getElementById('statusMessage');
     const resultsHeader = document.getElementById('resultsHeader');
-    const dataGrid = document.getElementById('dataGrid');
+    const dataGrid      = document.getElementById('dataGrid');
 
     if (!promptValue) {
         showStatus('Please describe the report parameters before generating.', 'error');
         return;
     }
 
-    // Limit checks
     const wordCount = promptValue.split(/\s+/).length;
     if (wordCount > 100 || promptValue.length > 1000) {
         showStatus(`Query too large. Words: ${wordCount}/100. Characters: ${promptValue.length}/1000.`, 'error');
         return;
     }
 
-    // --- Loading State ---
-    btn.disabled = true;
-    btnText.innerText = "Synthesizing...";
-    spinner.style.display = "block";
+    // UI reset
+    btn.disabled            = true;
+    btnText.innerText       = 'Synthesizing…';
+    spinner.style.display   = 'block';
+    statusMsg.style.display      = 'none';
+    resultsHeader.style.display  = 'none';
+    dataGrid.style.display       = 'none';
 
-    statusMsg.style.display = "none";
-    resultsHeader.style.display = "none";
-    dataGrid.style.display = "none";
+    // ── Show glow + centered overlay ─────────────────────────
+    startProcessingUI();
+    const startTime = Date.now();
 
     try {
-        // --- Execute Request ---
-        const response = await fetch('/ai/generateReport', {
+        // Steps 1-3: organic random delays
+        await markStepAfter(0, randomBetween(480, 900));
+        await markStepAfter(1, randomBetween(320, 680));
+        await markStepAfter(2, randomBetween(220, 500));
+
+        // Step 4: REAL — /ai/sql/generate
+        const sqlResp = await fetch('/ai/sql/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: promptValue })
         });
+        if (!sqlResp.ok) throw new Error(`HTTP ${sqlResp.status} on SQL generation`);
+        const step1 = await sqlResp.json();
+        markStep(3); // ✔ Generating optimized SQL
 
-        if (!response.ok) {
-            throw new Error(`Connection Error: HTTP ${response.status}`);
-        }
+        // Step 5: validation happened server-side in step 4
+        await delay(randomBetween(160, 340));
+        markStep(4); // ✔ Validating query safety
 
-        // --- Robust Parsing ---
-        const rawJson = await response.text();
-        let parsedData = [];
+        // Step 6: REAL — /ai/sql/execute (0 AI calls)
+        const execResp = await fetch('/ai/sql/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt:     promptValue,
+                sql:        step1.sql,
+                summary:    step1.summary    || '',
+                confidence: step1.confidence || 'medium',
+                reason:     step1.reason     || ''
+            })
+        });
+        if (!execResp.ok) throw new Error(`HTTP ${execResp.status} on execution`);
+        const result = await execResp.json();
+        markStep(5); // ✔ Fetching results
 
-        try {
-            parsedData = JSON.parse(rawJson);
-        } catch(e) {
-            throw new Error("The backend returned an invalid data format.");
-        }
+        const latency = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
-        console.log("Database Backend Response:", parsedData);
+        // Brief pause so user sees all steps before transition
+        await delay(500);
 
-        // FIX: Extract Array if backend wrapped it in an Object map
-        if (parsedData && !Array.isArray(parsedData)) {
-            for (let key in parsedData) {
-                if (Array.isArray(parsedData[key])) {
-                    parsedData = parsedData[key];
-                    break;
-                }
-            }
-        }
+        // ── Hide overlay, populate panel ──────────────────────
+        stopProcessingUI();
+        populateAiPanel(
+            result.sql,
+            result.summary,
+            result.confidence,
+            result.reason,
+            latency,
+            result.model
+        );
 
-        // --- Render Data ---
-        if (Array.isArray(parsedData) && parsedData.length > 0) {
-            globalReportData = parsedData; // Save to global for Excel
+        // Render table
+        const parsedData = Array.isArray(result.data) ? result.data : [];
+        if (parsedData.length > 0) {
+            globalReportData = parsedData;
             buildTable(parsedData);
-
-            // Soft animated reveal
-            resultsHeader.style.display = "flex";
-            dataGrid.style.display = "block";
+            resultsHeader.style.display = 'flex';
+            dataGrid.style.display      = 'block';
         } else {
-            showStatus('The AI engine executed the query successfully, but returned 0 rows.', 'info');
+            showStatus('Query executed successfully, but returned 0 rows.', 'info');
         }
 
-    } catch (error) {
-        console.error('System Error:', error);
-        showStatus(`Execution Failed: ${error.message} (Is the backend running?)`, 'error');
+    } catch (err) {
+        console.error('Error:', err);
+        showStatus(`Error: ${err.message} — Is the backend running?`, 'error');
+        stopProcessingUI();
+        const panel = document.getElementById('aiPanel');
+        if (panel) panel.style.display = 'none';
     } finally {
-        // --- Restore UI ---
-        btn.disabled = false;
-        btnText.innerText = "Generate Report";
-        spinner.style.display = "none";
+        btn.disabled          = false;
+        btnText.innerText     = 'Generate Report';
+        spinner.style.display = 'none';
     }
 }
 
-// Builds the horizontal Excel-style Starlims HTML table
+// ── Processing UI helpers ─────────────────────────────────────
+
+function startProcessingUI() {
+    // Show glow borders
+    document.getElementById('borderGlow').classList.add('active');
+
+    // Reset progress bar
+    const fillEl = document.getElementById('procProgressFill');
+    const pctEl  = document.getElementById('procProgressPct');
+    if (fillEl) fillEl.style.width = '0%';
+    if (pctEl)  pctEl.textContent  = '0%';
+
+    // Build overlay steps
+    const overlay = document.getElementById('procOverlay');
+    const list    = document.getElementById('overlayStepsList');
+    list.innerHTML = '';
+    REASONING_STEPS.forEach(step => {
+        const li   = document.createElement('li');
+        li.className = 'overlay-step';
+        li.innerHTML = `<span class="overlay-step-icon">&#10003;</span>${step}`;
+        list.appendChild(li);
+    });
+    overlay.classList.add('active');
+
+    // Build sidebar steps
+    const aiPanel   = document.getElementById('aiPanel');
+    const reasonSec = document.getElementById('reasoningSection');
+    const resultSec = document.getElementById('resultsSection');
+    const sList     = document.getElementById('reasoningList');
+    sList.innerHTML = '';
+    REASONING_STEPS.forEach(step => {
+        const li = document.createElement('li');
+        li.className = 'reasoning-step';
+        li.innerHTML = `<span class="step-check">&#10003;</span>${step}`;
+        sList.appendChild(li);
+    });
+    aiPanel.style.display   = 'block';
+    reasonSec.style.display = 'block';
+    if (resultSec) resultSec.style.display = 'none';
+}
+
+function stopProcessingUI() {
+    document.getElementById('borderGlow').classList.remove('active');
+    document.getElementById('procOverlay').classList.remove('active');
+    document.getElementById('reasoningSection').style.display = 'none';
+
+    // Reset progress bar to 0 after overlay fades out
+    setTimeout(() => {
+        const fillEl = document.getElementById('procProgressFill');
+        const pctEl  = document.getElementById('procProgressPct');
+        if (fillEl) fillEl.style.width = '0%';
+        if (pctEl)  pctEl.textContent  = '0%';
+    }, 400);
+}
+
+// ── Populate AI results panel ─────────────────────────────────
+
+function populateAiPanel(sql, summary, confidence, reason, latency, modelName) {
+    const resultSec = document.getElementById('resultsSection');
+    const sqlEl     = document.getElementById('sqlDisplay');
+    const summEl    = document.getElementById('sqlSummary');
+    const badgeEl   = document.getElementById('confidenceBadge');
+    const reasonEl  = document.getElementById('confidenceReason');
+    const latEl     = document.getElementById('latencyValue');
+    const modEl     = document.getElementById('modelValue');
+
+    if (sqlEl)    sqlEl.innerText    = sql;
+    if (summEl)   summEl.innerText   = summary || '';
+    if (latEl)    latEl.innerText    = latency  || '—';
+    if (modEl)    modEl.innerText    = modelName ? modelName.split('/').pop() : '—';
+
+    // Confidence badge
+    if (badgeEl) {
+        const level = (confidence || 'medium').toLowerCase();
+        const map   = { high: '🟢 High Confidence', medium: '🟡 Medium Confidence', low: '🔴 Low Confidence' };
+        badgeEl.innerHTML = `<span class="conf-badge ${level}">${map[level] || '🟡 Medium Confidence'}</span>`;
+    }
+    if (reasonEl) reasonEl.innerText = reason || '';
+
+    if (resultSec) resultSec.style.display = 'block';
+}
+
+// ── Table builder ─────────────────────────────────────────────
+
 function buildTable(dataArray) {
-    const tableHead = document.getElementById('dataHead');
-    const tableBody = document.getElementById('dataBody');
-    tableHead.innerHTML = '';
-    tableBody.innerHTML = '';
+    const thead = document.getElementById('dataHead');
+    const tbody = document.getElementById('dataBody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
 
-    // Dynamically find all columns across all rows
-    let columns = new Set();
-    dataArray.forEach(row => {
-        if(row && typeof row === 'object') {
-            Object.keys(row).forEach(key => columns.add(key));
-        }
-    });
-    const colArray = Array.from(columns);
+    const cols = Array.from(new Set(dataArray.flatMap(r => Object.keys(r || {}))));
 
-    // Build Table Header (Thead)
-    const trHead = document.createElement('tr');
-    colArray.forEach(headerText => {
+    const trH = document.createElement('tr');
+    cols.forEach(col => {
         const th = document.createElement('th');
-        th.innerText = headerText.replace(/_/g, ' '); // Clean snake_case visually
-        trHead.appendChild(th);
+        th.innerText = col.replace(/_/g, ' ');
+        trH.appendChild(th);
     });
-    tableHead.appendChild(trHead);
+    thead.appendChild(trH);
 
-    // Build Table Body (Tbody)
     dataArray.forEach(row => {
-        const trBody = document.createElement('tr');
-
-        colArray.forEach(colName => {
+        const tr = document.createElement('tr');
+        cols.forEach(col => {
             const td = document.createElement('td');
-            let cellValue = row[colName];
-
-            // Fallback for missing or null columns
-            if (cellValue === undefined || cellValue === null) {
-                cellValue = '';
-            }
-
-            // Handle nested objects
-            if (typeof cellValue === 'object') {
-                cellValue = JSON.stringify(cellValue);
-            }
-
-            // Truncation logic with hover tooltip
+            let val  = row[col];
+            if (val === null || val === undefined) val = '';
+            if (typeof val === 'object') val = JSON.stringify(val);
             const span = document.createElement('span');
             span.className = 'lims-data-cell';
-            span.title = String(cellValue); // Hover to view full text
-            span.innerText = String(cellValue);
-
+            span.title     = String(val);
+            span.innerText = String(val);
             td.appendChild(span);
-            trBody.appendChild(td);
+            tr.appendChild(td);
         });
-
-        tableBody.appendChild(trBody);
+        tbody.appendChild(tr);
     });
 }
 
-function showStatus(message, type) {
-    const statusBox = document.getElementById('statusMessage');
-    statusBox.innerText = message;
-    statusBox.style.display = 'block';
-    if(type === 'error') {
-        statusBox.style.backgroundColor = '#ffebe6';
-        statusBox.style.color = '#bf2600';
-        statusBox.style.border = '1px solid #ffbdad';
+// ── Status helper ─────────────────────────────────────────────
+
+function showStatus(msg, type) {
+    const el = document.getElementById('statusMessage');
+    el.innerText = msg;
+    el.style.display = 'block';
+    if (type === 'error') {
+        el.style.cssText += 'background:#fff0f0;color:#c0392b;border:1px solid #f5c6c6;';
     } else {
-        statusBox.style.backgroundColor = '#e6fcff';
-        statusBox.style.color = '#0065ff';
-        statusBox.style.border = '1px solid #b3d4ff';
+        el.style.cssText += 'background:#e8f4fd;color:#1565c0;border:1px solid #b3d4f0;';
     }
 }
+
+// ── Excel export ──────────────────────────────────────────────
 
 function exportToExcel() {
-    if (!globalReportData || globalReportData.length === 0) return;
-
-    // Flatten data to pure strings so Excel formatting works
-    const flatData = globalReportData.map(row => {
-        let cleanRow = {};
-        for (const [key, value] of Object.entries(row)) {
-            if (typeof value === 'object' && value !== null) {
-                cleanRow[key] = JSON.stringify(value, null, 2);
-            } else {
-                cleanRow[key] = value;
-            }
-        }
-        return cleanRow;
+    if (!globalReportData || !globalReportData.length) return;
+    const flat = globalReportData.map(row => {
+        const r = {};
+        for (const [k, v] of Object.entries(row))
+            r[k] = typeof v === 'object' && v ? JSON.stringify(v) : v;
+        return r;
     });
-
-    const worksheet = XLSX.utils.json_to_sheet(flatData);
-
-    // --- ADDED: Make the first row (headings) bold ---
-    // The range of the sheet tells us how many columns there are
-    const range = XLSX.utils.decode_range(worksheet['!ref']);
-    for(let C = range.s.c; C <= range.e.c; ++C) {
-        // Find the cell object for the first row (R:0 is the header)
-        const address = XLSX.utils.encode_cell({c:C, r:0});
-        if(!worksheet[address]) continue;
-
-        // Add bold style
-        // Note: Full styling requires the SheetJS Pro version or xlsx-js-style module,
-        // but this raw object injection often works for basic bolding in modern Excel.
-        worksheet[address].s = {
-            font: { bold: true }
-        };
-    }
-    // --------------------------------------------------
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "LIMS Report");
-
-    const colWidths = Object.keys(flatData[0] || {}).map(() => ({ wch: 25 }));
-    worksheet['!cols'] = colWidths;
-
-    const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(workbook, `STARLIMS_Generated_Report_${dateStr}.xlsx`);
+    const ws = XLSX.utils.json_to_sheet(flat);
+    ws['!cols'] = Object.keys(flat[0] || {}).map(() => ({ wch: 22 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'LIMS Report');
+    XLSX.writeFile(wb, `STARLIMS_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
-

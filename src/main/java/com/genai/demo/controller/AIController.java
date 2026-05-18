@@ -64,12 +64,38 @@ public class AIController {
     }
 
     @PostMapping("/generateReport")
-    public ResponseEntity<List<Map<String, Object>>> generateReport(
+    public ResponseEntity<Map<String, Object>> generateReport(
             @RequestBody PromptRequest request) {
 
-        List<Map<String, Object>> result =
+        Map<String, Object> result =
                 reportService.generateReport(request.getPrompt());
 
+        return ResponseEntity.ok(result);
+    }
+
+    // Step 1: Generate + validate SQL — returns sql, summary, confidence, reason (1 AI call)
+    @PostMapping("/sql/generate")
+    public ResponseEntity<Map<String, Object>> generateSql(
+            @RequestBody PromptRequest request) {
+        Map<String, String> result = reportService.generateValidatedSql(request.getPrompt());
+        return ResponseEntity.ok(Map.of(
+                "sql",        result.get("sql"),
+                "summary",    result.getOrDefault("summary", ""),
+                "confidence", result.getOrDefault("confidence", "medium"),
+                "reason",     result.getOrDefault("reason", "")
+        ));
+    }
+
+    // Step 2: Execute SQL + return data (0 AI calls — all enrichment from step 1)
+    @PostMapping("/sql/execute")
+    public ResponseEntity<Map<String, Object>> executeSql(
+            @RequestBody Map<String, String> request) {
+        String prompt     = request.get("prompt");
+        String sql        = request.get("sql");
+        String summary    = request.getOrDefault("summary", "");
+        String confidence = request.getOrDefault("confidence", "medium");
+        String reason     = request.getOrDefault("reason", "");
+        Map<String, Object> result = reportService.executeReport(prompt, sql, summary, confidence, reason);
         return ResponseEntity.ok(result);
     }
 }
