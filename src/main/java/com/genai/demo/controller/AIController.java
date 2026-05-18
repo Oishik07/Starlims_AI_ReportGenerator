@@ -24,7 +24,7 @@ import java.util.Map;
 @RequestMapping("/ai")
 public class AIController {
 
-    //private final AIService aiService;
+    // private final AIService aiService;
     public final ChatClient chatClient;
     public final StarlimsTools starlimsTools;
     private final ReportService reportService;
@@ -32,23 +32,25 @@ public class AIController {
     @Autowired
     private ChatMemory chatMemory;
 
-   /* @GetMapping("/joke/{query}")
-    public ResponseEntity<String> getResponse(@PathVariable String query){
-        String response=aiService.getJoke(query + "what is Dog");
-        return ResponseEntity.ok("Hello"+response);
-    }
-
-    @GetMapping("/test")
-    public ResponseEntity<String> getResponse(){
-        String response="Hello";
-        return ResponseEntity.ok(response);
-    }*/
+    /*
+     * @GetMapping("/joke/{query}")
+     * public ResponseEntity<String> getResponse(@PathVariable String query){
+     * String response=aiService.getJoke(query + "what is Dog");
+     * return ResponseEntity.ok("Hello"+response);
+     * }
+     * 
+     * @GetMapping("/test")
+     * public ResponseEntity<String> getResponse(){
+     * String response="Hello";
+     * return ResponseEntity.ok(response);
+     * }
+     */
 
     @PostMapping("/chat")
-    public ResponseEntity<?> chat(@RequestBody String message){
+    public ResponseEntity<?> chat(@RequestBody String message) {
 
         String resp = chatClient.prompt()
-                .system("Do not use any other tools or functions except provided. If any input parameters are missing in starlimsTools, do not proceed further" )
+                .system("Do not use any other tools or functions except provided. If any input parameters are missing in starlimsTools, do not proceed further")
                 .user(message)
                 .tools(starlimsTools)
                 .advisors(new SimpleLoggerAdvisor(),
@@ -58,7 +60,6 @@ public class AIController {
                 .call()
                 .content();
 
-
         return ResponseEntity.ok(resp);
 
     }
@@ -67,34 +68,33 @@ public class AIController {
     public ResponseEntity<Map<String, Object>> generateReport(
             @RequestBody PromptRequest request) {
 
-        Map<String, Object> result =
-                reportService.generateReport(request.getPrompt());
+        Map<String, Object> result = reportService.generateReport(request.getPrompt());
 
         return ResponseEntity.ok(result);
     }
 
-    // Step 1: Generate + validate SQL — returns sql, summary, confidence, reason (1 AI call)
+    // Step 1: Generate + validate SQL — returns sql, summary, confidence, reason (1
+    // AI call)
     @PostMapping("/sql/generate")
     public ResponseEntity<Map<String, Object>> generateSql(
             @RequestBody PromptRequest request) {
         Map<String, String> result = reportService.generateValidatedSql(request.getPrompt());
         return ResponseEntity.ok(Map.of(
-                "sql",        result.get("sql"),
-                "summary",    result.getOrDefault("summary", ""),
+                "sql", result.get("sql"),
+                "summary", result.getOrDefault("summary", ""),
                 "confidence", result.getOrDefault("confidence", "medium"),
-                "reason",     result.getOrDefault("reason", "")
-        ));
+                "reason", result.getOrDefault("reason", "")));
     }
 
     // Step 2: Execute SQL + return data (0 AI calls — all enrichment from step 1)
     @PostMapping("/sql/execute")
     public ResponseEntity<Map<String, Object>> executeSql(
             @RequestBody Map<String, String> request) {
-        String prompt     = request.get("prompt");
-        String sql        = request.get("sql");
-        String summary    = request.getOrDefault("summary", "");
+        String prompt = request.get("prompt");
+        String sql = request.get("sql");
+        String summary = request.getOrDefault("summary", "");
         String confidence = request.getOrDefault("confidence", "medium");
-        String reason     = request.getOrDefault("reason", "");
+        String reason = request.getOrDefault("reason", "");
         Map<String, Object> result = reportService.executeReport(prompt, sql, summary, confidence, reason);
         return ResponseEntity.ok(result);
     }
