@@ -352,7 +352,7 @@ async function fetchPage() {
         } else {
             showStatus('No more records found on the next page.', 'info');
             currentPage--; // Revert to previous page
-            updatePaginationUI(PAGE_SIZE); // Re-enable next button potentially
+            updatePaginationUI(0); // Disable next button since no more records exist
         }
     } catch (err) {
         showStatus('Error fetching page: ' + err.message, 'error');

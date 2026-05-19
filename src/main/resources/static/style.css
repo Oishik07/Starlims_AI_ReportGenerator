@@ -244,6 +244,32 @@ textarea:focus {
     vertical-align: middle;
 }
 
+/* Pagination Buttons */
+.page-btn {
+    background: transparent;
+    color: var(--sl-blue);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    border: 1.5px solid #c5d8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 100px;
+    text-align: center;
+}
+.page-btn:hover:not(:disabled) {
+    background: #e6f0fa;
+    border-color: var(--sl-blue);
+}
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #e0e5ed;
+    color: #9ca3af;
+}
+
 /* =============================================
    AI INSIGHTS PANEL — Premium Borderless Design
    ============================================= */
