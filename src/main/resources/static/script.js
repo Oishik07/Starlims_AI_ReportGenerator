@@ -135,6 +135,7 @@ async function generateReport() {
         );
 
         // For the first page, use the lookahead approach
+        const parsedData = Array.isArray(result.data) ? result.data : [];
         let hasNextPage = false;
         let dataToRender = parsedData;
         if (parsedData.length > PAGE_SIZE) {
