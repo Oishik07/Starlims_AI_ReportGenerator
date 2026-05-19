@@ -91,13 +91,18 @@ async function generateReport() {
         await delay(randomBetween(160, 340));
         markStep(4); // ✔ Validating query safety
 
+        let initialSql = step1.sql.replace(/;+$/, '').trim();
+        initialSql = initialSql.replace(/LIMIT\s+\d+/gi, '').trim(); 
+        initialSql = initialSql.replace(/OFFSET\s+\d+/gi, '').trim();
+        initialSql += ` LIMIT ${PAGE_SIZE + 1} OFFSET 0;`;
+
         // Step 6: REAL — /ai/sql/execute (0 AI calls)
         const execResp = await fetch('/ai/sql/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt:     promptValue,
-                sql:        step1.sql,
+                sql:        initialSql,
                 summary:    step1.summary    || '',
                 confidence: step1.confidence || 'medium',
                 reason:     step1.reason     || ''
@@ -121,7 +126,7 @@ async function generateReport() {
         // ── Hide overlay, populate panel ──────────────────────
         stopProcessingUI();
         populateAiPanel(
-            result.sql,
+            step1.sql,
             result.summary,
             result.confidence,
             result.reason,
@@ -129,15 +134,20 @@ async function generateReport() {
             result.model
         );
 
-        // Render table
-        const parsedData = Array.isArray(result.data) ? result.data : [];
-        if (parsedData.length > 0) {
-            globalReportData = parsedData;
-            buildTable(parsedData);
-            updatePaginationUI(parsedData.length);
+        // For the first page, use the lookahead approach
+        let hasNextPage = false;
+        let dataToRender = parsedData;
+        if (parsedData.length > PAGE_SIZE) {
+            hasNextPage = true;
+            dataToRender = parsedData.slice(0, PAGE_SIZE); // Keep only 10
+        }
+
+        if (dataToRender.length > 0) {
+            globalReportData = dataToRender;
+            buildTable(dataToRender);
+            updatePaginationUI(hasNextPage);
             resultsHeader.style.display = 'flex';
             dataGrid.style.display      = 'block';
-
         } else {
             showStatus('Query executed successfully, but returned 0 rows.', 'info');
         }
@@ -320,10 +330,12 @@ async function prevPage() {
 async function fetchPage() {
     const offset = (currentPage - 1) * PAGE_SIZE;
     
-    // The AI appends "LIMIT 10". We strip trailing semicolons and append the OFFSET.
+    // We strip trailing semicolons, and remove any existing LIMIT/OFFSET.
+    // Then we append LIMIT 11 (PAGE_SIZE + 1) to look ahead for the next page!
     let modifiedSql = currentGeneratedSql.replace(/;+$/, '').trim();
-    modifiedSql = modifiedSql.replace(/OFFSET\s+\d+/i, '').trim(); // Remove existing offset if any
-    modifiedSql += ` OFFSET ${offset};`;
+    modifiedSql = modifiedSql.replace(/LIMIT\s+\d+/gi, '').trim(); 
+    modifiedSql = modifiedSql.replace(/OFFSET\s+\d+/gi, '').trim();
+    modifiedSql += ` LIMIT ${PAGE_SIZE + 1} OFFSET ${offset};`;
 
     const statusMsg = document.getElementById('statusMessage');
     statusMsg.style.display = 'none';
@@ -345,14 +357,21 @@ async function fetchPage() {
         const result = await execResp.json();
         const parsedData = Array.isArray(result.data) ? result.data : [];
         
-        if (parsedData.length > 0) {
-            globalReportData = parsedData;
-            buildTable(parsedData);
-            updatePaginationUI(parsedData.length);
+        let hasNextPage = false;
+        let dataToRender = parsedData;
+        if (parsedData.length > PAGE_SIZE) {
+            hasNextPage = true;
+            dataToRender = parsedData.slice(0, PAGE_SIZE); // Keep only 10
+        }
+        
+        if (dataToRender.length > 0) {
+            globalReportData = dataToRender;
+            buildTable(dataToRender);
+            updatePaginationUI(hasNextPage);
         } else {
             showStatus('No more records found on the next page.', 'info');
             currentPage--; // Revert to previous page
-            updatePaginationUI(0); // Disable next button since no more records exist
+            updatePaginationUI(false); // Disable next button
         }
     } catch (err) {
         showStatus('Error fetching page: ' + err.message, 'error');
@@ -360,7 +379,7 @@ async function fetchPage() {
     }
 }
 
-function updatePaginationUI(rowsReturned) {
+function updatePaginationUI(hasNextPage) {
     const pagContainer = document.getElementById('paginationControls');
     const pageIndicator = document.getElementById('pageIndicator');
     const prevBtn = document.getElementById('prevPageBtn');
@@ -371,9 +390,6 @@ function updatePaginationUI(rowsReturned) {
         pageIndicator.innerText = `Page ${currentPage}`;
         
         prevBtn.disabled = (currentPage === 1);
-        
-        // If we got exactly the page size, there MIGHT be a next page.
-        // If we got fewer than PAGE_SIZE, we are definitely on the last page.
-        nextBtn.disabled = (rowsReturned < PAGE_SIZE);
+        nextBtn.disabled = !hasNextPage;
     }
 }
