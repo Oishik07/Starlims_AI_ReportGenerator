@@ -705,10 +705,22 @@ textarea:focus {
 @media (max-width: 600px) {
     body {
         padding: 0.5rem;
+        display: block; /* overriding flex to allow width constraint */
+        overflow-x: hidden;
     }
     .app-wrapper {
         padding: 1.25rem 1rem;
         border-radius: 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .page-body, .main-col, .input-container {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
     .app-header {
         flex-direction: column;
@@ -723,10 +735,15 @@ textarea:focus {
     .button-row {
         flex-direction: column;
         gap: 0.75rem;
+        width: 100%;
+        margin: 0.75rem 0 0 0 !important;
     }
     .chat-nav-btn, .primary-btn {
         width: 100%;
+        max-width: 100%;
         justify-content: center;
+        margin: 0 !important;
+        box-sizing: border-box;
     }
     .proc-card {
         min-width: 90%;
@@ -736,11 +753,31 @@ textarea:focus {
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
     }
     .export-btn {
         width: 100%;
+        margin: 0 !important;
+        box-sizing: border-box;
     }
     textarea {
         padding: 0.85rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+    }
+    .data-grid {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .table-scroll-wrapper {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
