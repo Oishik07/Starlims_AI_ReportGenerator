@@ -1,4 +1,10 @@
 let globalReportData = null;
+let currentGeneratedSql = "";
+let currentSummary = "";
+let currentConfidence = "";
+let currentReason = "";
+let currentPage = 1;
+const PAGE_SIZE = 10;
 
 const REASONING_STEPS = [
     'Understanding your request',
@@ -101,6 +107,12 @@ async function generateReport() {
         const result = await execResp.json();
         markStep(5); // ✔ Fetching results
 
+        currentGeneratedSql = step1.sql;
+        currentSummary = step1.summary;
+        currentConfidence = step1.confidence;
+        currentReason = step1.reason;
+        currentPage = 1;
+
         const latency = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
         // Brief pause so user sees all steps before transition
@@ -122,8 +134,10 @@ async function generateReport() {
         if (parsedData.length > 0) {
             globalReportData = parsedData;
             buildTable(parsedData);
+            updatePaginationUI(parsedData.length);
             resultsHeader.style.display = 'flex';
             dataGrid.style.display      = 'block';
+
         } else {
             showStatus('Query executed successfully, but returned 0 rows.', 'info');
         }
@@ -287,4 +301,79 @@ function exportToExcel() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'LIMS Report');
     XLSX.writeFile(wb, `STARLIMS_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── Pagination Logic ──────────────────────────────────────────
+
+async function nextPage() {
+    currentPage++;
+    await fetchPage();
+}
+
+async function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        await fetchPage();
+    }
+}
+
+async function fetchPage() {
+    const offset = (currentPage - 1) * PAGE_SIZE;
+    
+    // The AI appends "LIMIT 10". We strip trailing semicolons and append the OFFSET.
+    let modifiedSql = currentGeneratedSql.replace(/;+$/, '').trim();
+    modifiedSql = modifiedSql.replace(/OFFSET\s+\d+/i, '').trim(); // Remove existing offset if any
+    modifiedSql += ` OFFSET ${offset};`;
+
+    const statusMsg = document.getElementById('statusMessage');
+    statusMsg.style.display = 'none';
+
+    try {
+        const execResp = await fetch('/ai/sql/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: document.getElementById('promptInput').value.trim(),
+                sql: modifiedSql,
+                summary: currentSummary,
+                confidence: currentConfidence,
+                reason: currentReason
+            })
+        });
+
+        if (!execResp.ok) throw new Error(`HTTP ${execResp.status}`);
+        const result = await execResp.json();
+        const parsedData = Array.isArray(result.data) ? result.data : [];
+        
+        if (parsedData.length > 0) {
+            globalReportData = parsedData;
+            buildTable(parsedData);
+            updatePaginationUI(parsedData.length);
+        } else {
+            showStatus('No more records found on the next page.', 'info');
+            currentPage--; // Revert to previous page
+            updatePaginationUI(PAGE_SIZE); // Re-enable next button potentially
+        }
+    } catch (err) {
+        showStatus('Error fetching page: ' + err.message, 'error');
+        currentPage--;
+    }
+}
+
+function updatePaginationUI(rowsReturned) {
+    const pagContainer = document.getElementById('paginationControls');
+    const pageIndicator = document.getElementById('pageIndicator');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    
+    if (pagContainer) {
+        pagContainer.style.display = 'flex';
+        pageIndicator.innerText = `Page ${currentPage}`;
+        
+        prevBtn.disabled = (currentPage === 1);
+        
+        // If we got exactly the page size, there MIGHT be a next page.
+        // If we got fewer than PAGE_SIZE, we are definitely on the last page.
+        nextBtn.disabled = (rowsReturned < PAGE_SIZE);
+    }
 }
