@@ -355,6 +355,17 @@
         .chat-window::-webkit-scrollbar-track { background: transparent; }
         .chat-window::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 4px; }
         .chat-window::-webkit-scrollbar-thumb:hover { background: #c0c4cc; }
+
+        /* ─── Mobile Responsiveness ───────────────────── */
+        @media (max-width: 768px) {
+            .chat-header { padding: 0.75rem 1rem; }
+            .chat-window { padding: 1rem; gap: 1rem; }
+            .input-bar { padding: 0.75rem 1rem; gap: 0.5rem; }
+            .bubble { max-width: 85%; }
+            .welcome-banner { padding: 1.5rem 0.5rem; }
+            .welcome-title { font-size: 1.1rem; }
+            .welcome-subtitle { font-size: 0.85rem; }
+        }
     </style>
 </head>
 <body>
