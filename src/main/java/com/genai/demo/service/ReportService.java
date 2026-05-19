@@ -191,7 +191,8 @@ public class ReportService{
                 - Use ILIKE for case-insensitive matching
                 - Do not generate INSERT, UPDATE, DELETE, DROP
                 - Only use column names exactly as defined in the schema.
-                -  Do not invent new columns.
+                - Do not invent new columns.
+                - ALWAYS append "LIMIT 10" to every generated query for pagination optimization.
                 
                 Relationship Rules:
                 - samples.id = sample_inventory.sample_id (one-to-many)
