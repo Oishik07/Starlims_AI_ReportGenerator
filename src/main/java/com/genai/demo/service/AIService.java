@@ -154,7 +154,10 @@ public class AIService {
                 .call()
                 .content();
 
-        return parseSqlAndSummary(resp.toString());
+        if (resp == null) {
+            return Map.of("sql", "", "summary", "", "confidence", "low", "reason", "No response from AI");
+        }
+        return parseSqlAndSummary(resp);
     }
 
 
@@ -169,6 +172,9 @@ public class AIService {
      * Uses Jackson for robustness. Falls back gracefully on parse failure.
      */
     private Map<String, String> parseSqlAndSummary(String raw) {
+        if (raw == null) {
+            return Map.of("sql", "", "summary", "", "confidence", "low", "reason", "Raw response is null");
+        }
         try {
             // Find the JSON block — strip any surrounding markdown or prose
             int start = raw.indexOf('{');
