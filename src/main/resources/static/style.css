@@ -1,10 +1,13 @@
 /* =============================================
-   STARLIMS AI Report Generator — Premium UI v10
+   STARLIMS AI Report Generator — Premium UI v11
    ============================================= */
 
 :root {
     --sl-blue:       #0f4b8f;
     --sl-blue-light: #1a6fd4;
+    --sl-navy:       #1a2b4a;
+    --sl-navy-2:     #2c3e6b;
+    --ai-purple:     #5b3fdc;
     --bg:            #eef2f8;
     --surface:       #ffffff;
     --border:        #e4e8f0;
@@ -21,7 +24,6 @@
 body {
     margin: 0;
     padding: 1.5rem;
-    /* Soft ambient gradient instead of flat gray — more premium */
     background:
         radial-gradient(ellipse at top left,  rgba(66, 133, 244, 0.08), transparent 50%),
         radial-gradient(ellipse at bottom right, rgba(155, 81, 224, 0.06), transparent 50%),
@@ -48,12 +50,13 @@ body {
     background: var(--surface);
     border-radius: 16px;
     padding: 2rem 2.5rem 2.5rem;
-    /* Deeper, more dimensional shadow */
     box-shadow:
         0 1px 2px rgba(15, 75, 143, 0.04),
         0 12px 48px rgba(15, 75, 143, 0.10);
     border-top: 3px solid var(--sl-blue);
     animation: fadeUp 0.5s ease-out;
+    /* Safe zone at bottom so FAB doesn't collide with content */
+    padding-bottom: 5.5rem;
 }
 
 /* ── Two-Column Layout ────────────────────────── */
@@ -68,61 +71,103 @@ body {
     min-width: 0;
 }
 
-/* ── Header ───────────────────────────────────── */
+/* =============================================
+   PREMIUM HEADER — Modern, hierarchical typography
+   ============================================= */
 .app-header {
     display: flex;
     align-items: center;
+    gap: 0.95rem;
     padding-bottom: 1.5rem;
     margin-bottom: 1.75rem;
     border-bottom: 1px solid var(--border);
 }
 
-.brand-logo { height: 40px; object-fit: contain; }
-
-.divider {
-    width: 1px;
-    height: 28px;
-    background: var(--border);
-    margin: 0 1.25rem;
+.brand-logo {
+    height: 42px;
+    object-fit: contain;
 }
 
+/* The divider line is removed visually — modern UIs use spacing instead */
+.divider {
+    display: none;
+}
+
+/* Title becomes sentence-case, weighted, with proper tracking */
 .app-title {
     margin: 0;
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--muted);
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    /* Override the old uppercase + muted styling */
+    text-transform: none;
+    line-height: 1.2;
+    /* Subtle gradient on text for that premium AI feel */
+    background: linear-gradient(135deg, var(--text) 0%, var(--sl-blue) 70%, var(--ai-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Alt logo (when image fails to load) — also gradient */
+#altLogo {
+    font-size: 1.4rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, var(--sl-blue) 0%, var(--ai-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent !important;
+    letter-spacing: -0.5px !important;
 }
 
 /* =============================================
-   PREMIUM TEXTAREA — Simple yet refined
+   PREMIUM TEXTAREA — Framed "Ask AI" prompt field
    ============================================= */
 .input-container {
     margin-bottom: 1.25rem;
     position: relative;
 }
 
+/* Floating "ASK AI" label using ::before on the container */
+.input-container::before {
+    content: '✦ ASK AI';
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--ai-purple);
+    z-index: 2;
+    pointer-events: none;
+    /* Subtle gradient on the label too */
+    background: linear-gradient(135deg, var(--sl-blue-light), var(--ai-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 textarea {
     width: 100%;
-    padding: 1.1rem 1.2rem;
+    /* Extra top padding to make room for the floating "ASK AI" label */
+    padding: 2.2rem 1.2rem 1.1rem 1.2rem;
     font-family: 'Inter', sans-serif;
     font-size: 0.95rem;
     color: var(--text);
-    /* Subtle gradient border feel using a transparent border + ring */
     border: 1px solid var(--border);
-    border-radius: 14px;
-    /* Layered background — very subtle inner gradient for depth */
+    border-radius: 16px;
     background:
         linear-gradient(180deg, #ffffff 0%, #fafbfe 100%);
     resize: vertical;
     outline: none;
     transition: all 0.25s ease;
     line-height: 1.65;
-    /* Subtle inset for paper-like depth */
     box-shadow:
         inset 0 1px 2px rgba(15, 75, 143, 0.03),
         0 1px 3px rgba(15, 75, 143, 0.02);
+    min-height: 110px;
 }
 
 textarea::placeholder {
@@ -134,15 +179,15 @@ textarea:hover {
     border-color: #c5d8f0;
     box-shadow:
         inset 0 1px 2px rgba(15, 75, 143, 0.03),
-        0 2px 8px rgba(15, 75, 143, 0.05);
+        0 2px 12px rgba(15, 75, 143, 0.06);
 }
 
 textarea:focus {
-    border-color: var(--sl-blue-light);
+    border-color: var(--ai-purple);
     background: #ffffff;
     box-shadow:
-        0 0 0 4px rgba(66, 133, 244, 0.10),
-        0 4px 16px rgba(15, 75, 143, 0.08);
+        0 0 0 4px rgba(91, 63, 220, 0.10),
+        0 4px 20px rgba(15, 75, 143, 0.10);
 }
 
 .button-row {
@@ -154,15 +199,13 @@ textarea:focus {
 
 /* =============================================
    GENERATE REPORT — AI-themed primary button
-   Subtle gradient + animated shimmer on hover
    ============================================= */
 .primary-btn {
-    /* AI-themed gradient — blue → purple, but subtle (not as loud as FAB) */
     background: linear-gradient(
         135deg,
         var(--sl-blue) 0%,
         #1a6fd4 50%,
-        #5b3fdc 100%
+        var(--ai-purple) 100%
     );
     background-size: 200% 200%;
     background-position: 0% 50%;
@@ -189,8 +232,6 @@ textarea:focus {
         0 1px 3px rgba(91, 63, 220, 0.20);
 }
 
-/* Sparkle prefix — adds AI character without changing your HTML.
-   ::before content uses an inline SVG sparkle in white. */
 .primary-btn::before {
     content: '';
     width: 16px;
@@ -203,7 +244,6 @@ textarea:focus {
     flex-shrink: 0;
 }
 
-/* Light sweep on hover — that classic AI shimmer */
 .primary-btn::after {
     content: '';
     position: absolute;
@@ -228,10 +268,7 @@ textarea:focus {
         0 2px 8px rgba(15, 75, 143, 0.25);
 }
 
-.primary-btn:hover::after {
-    left: 100%;
-}
-
+.primary-btn:hover::after { left: 100%; }
 .primary-btn:active { transform: translateY(0); }
 
 .primary-btn:disabled {
@@ -264,7 +301,7 @@ textarea:focus {
 .chat-nav-btn:hover { background: #f0f5ff; border-color: var(--sl-blue); }
 
 /* =============================================
-   AI CHAT FAB — Refreshed Gemini-style FAB
+   AI CHAT FAB
    ============================================= */
 .chat-fab-btn {
     position: fixed;
@@ -320,9 +357,7 @@ textarea:focus {
         0 4px 14px rgba(155, 81, 224, 0.40);
 }
 
-.chat-fab-btn:active {
-    transform: translateY(0) scale(0.97);
-}
+.chat-fab-btn:active { transform: translateY(0) scale(0.97); }
 
 .chat-fab-btn.disabled {
     pointer-events: none;
@@ -351,9 +386,7 @@ textarea:focus {
     50%      { transform: scale(1.2)  rotate(15deg); opacity: 0.92; }
 }
 
-.chat-fab-label {
-    line-height: 1;
-}
+.chat-fab-label { line-height: 1; }
 
 .spinner-ring {
     width: 15px; height: 15px;
@@ -442,7 +475,6 @@ textarea:focus {
     vertical-align: middle;
 }
 
-/* Pagination Buttons */
 .page-btn {
     background: transparent;
     color: var(--sl-blue);
@@ -469,7 +501,8 @@ textarea:focus {
 }
 
 /* =============================================
-   AI INSIGHTS PANEL
+   AI INSIGHTS PANEL — Now DARK NAVY (not blue!)
+   This is the key fix to distinguish from Generate btn
    ============================================= */
 .ai-panel {
     width: 280px;
@@ -487,17 +520,29 @@ textarea:focus {
     align-items: center;
     gap: 0.55rem;
     padding: 1rem 1.25rem;
-    background: linear-gradient(135deg, var(--sl-blue) 0%, #1a6fd4 100%);
+    /* Dark navy gradient — distinct from Generate button's blue→purple */
+    background: linear-gradient(135deg, var(--sl-navy) 0%, var(--sl-navy-2) 100%);
     color: #fff;
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.8px;
     text-transform: uppercase;
+    position: relative;
 }
 
-.ai-section {
-    padding: 1.1rem 1.25rem 0.85rem;
+/* Subtle accent line at the bottom of the header */
+.ai-panel-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--ai-purple), var(--sl-blue-light), transparent);
+    opacity: 0.6;
 }
+
+.ai-section { padding: 1.1rem 1.25rem 0.85rem; }
 
 .ai-label {
     display: flex;
@@ -670,7 +715,7 @@ textarea:focus {
 }
 
 /* =============================================
-   CENTERED PROCESSING OVERLAY
+   PROCESSING OVERLAY
    ============================================= */
 .proc-overlay {
     position: fixed;
@@ -798,9 +843,7 @@ textarea:focus {
     font-weight: 700;
 }
 
-/* =============================================
-   PROGRESS BAR
-   ============================================= */
+/* ── Progress Bar ─────────────────────────────── */
 .proc-progress-wrap {
     margin: 1.25rem 0 0.5rem;
     width: 100%;
@@ -842,9 +885,7 @@ textarea:focus {
     100% { background-position: -200% 0; }
 }
 
-/* =================================================
-   GEMINI SCREEN GLOW
-   ================================================= */
+/* ── Gemini screen glow ───────────────────────── */
 .border-glow {
     position: fixed;
     inset: 0;
@@ -922,7 +963,7 @@ textarea:focus {
         overflow-x: hidden;
     }
     .app-wrapper {
-        padding: 1.5rem 1.25rem 2rem;
+        padding: 1.5rem 1.25rem 5rem;  /* bottom padding = FAB safe-zone */
         border-radius: 16px;
         width: 100%;
         max-width: 100%;
@@ -936,21 +977,25 @@ textarea:focus {
         box-sizing: border-box;
     }
     .app-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
         padding-bottom: 1rem;
         margin-bottom: 1.25rem;
     }
+    .app-title {
+        font-size: 1.05rem;
+    }
+    .brand-logo {
+        height: 32px;
+    }
 
-    /* ── Mobile FAB — keep label visible, larger tap target ── */
     .chat-fab-btn {
         bottom: 22px;
         right: 22px;
         padding: 12px 20px;
         gap: 9px;
         font-size: 0.88rem;
-        /* Stronger shadow on mobile so it pops over content */
         box-shadow:
             0 6px 20px rgba(155, 81, 224, 0.40),
             0 3px 10px rgba(66, 133, 244, 0.30);
@@ -963,14 +1008,10 @@ textarea:focus {
         width: 16px;
         height: 16px;
     }
-    /* DO NOT hide the label on mobile anymore — keep it readable */
     .chat-fab-label {
         display: inline;
     }
 
-    .divider {
-        display: none;
-    }
     .button-row {
         flex-direction: column;
         gap: 0.75rem;
@@ -983,14 +1024,13 @@ textarea:focus {
         justify-content: center;
         margin: 0 !important;
         box-sizing: border-box;
-        /* Slightly chunkier on mobile for tap-friendliness */
         padding: 0.95rem 1.5rem;
         font-size: 0.95rem;
     }
     textarea {
-        padding: 1rem 1.1rem;
+        padding: 2.2rem 1.1rem 1rem;
         font-size: 0.95rem;
-        border-radius: 12px;
+        border-radius: 14px;
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
