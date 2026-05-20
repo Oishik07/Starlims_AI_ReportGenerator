@@ -84,7 +84,16 @@ async function generateReport() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: promptValue })
         });
-        if (!sqlResp.ok) throw new Error(`HTTP ${sqlResp.status} on SQL generation`);
+        if (!sqlResp.ok) {
+            let errMsg = `HTTP ${sqlResp.status} on SQL generation`;
+            try {
+                const errData = await sqlResp.json();
+                if (errData && errData.error) {
+                    errMsg = errData.error;
+                }
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
         const step1 = await sqlResp.json();
         markStep(3); // ✔ Generating optimized SQL
 
@@ -109,7 +118,16 @@ async function generateReport() {
                 reason:     step1.reason     || ''
             })
         });
-        if (!execResp.ok) throw new Error(`HTTP ${execResp.status} on execution`);
+        if (!execResp.ok) {
+            let errMsg = `HTTP ${execResp.status} on execution`;
+            try {
+                const errData = await execResp.json();
+                if (errData && errData.error) {
+                    errMsg = errData.error;
+                }
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
         const result = await execResp.json();
         markStep(5); // ✔ Fetching results
 
@@ -189,7 +207,7 @@ async function generateReport() {
 
     } catch (err) {
         console.error('Error:', err);
-        showStatus(`Error: ${err.message} — Is the backend running?`, 'error');
+        showStatus(`Error: ${err.message}`, 'error');
         stopProcessingUI();
         const panel = document.getElementById('aiPanel');
         if (panel) panel.style.display = 'none';
@@ -388,7 +406,16 @@ async function fetchPage() {
             })
         });
 
-        if (!execResp.ok) throw new Error(`HTTP ${execResp.status}`);
+        if (!execResp.ok) {
+            let errMsg = `HTTP ${execResp.status}`;
+            try {
+                const errData = await execResp.json();
+                if (errData && errData.error) {
+                    errMsg = errData.error;
+                }
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
         const result = await execResp.json();
         const parsedData = Array.isArray(result.data) ? result.data : [];
         

@@ -76,14 +76,20 @@ public class AIController {
     // Step 1: Generate + validate SQL — returns sql, summary, confidence, reason (1
     // AI call)
     @PostMapping("/sql/generate")
-    public ResponseEntity<Map<String, Object>> generateSql(
+    public ResponseEntity<?> generateSql(
             @RequestBody PromptRequest request) {
-        Map<String, String> result = reportService.generateValidatedSql(request.getPrompt());
-        return ResponseEntity.ok(Map.of(
-                "sql", result.get("sql"),
-                "summary", result.getOrDefault("summary", ""),
-                "confidence", result.getOrDefault("confidence", "medium"),
-                "reason", result.getOrDefault("reason", "")));
+        try {
+            Map<String, String> result = reportService.generateValidatedSql(request.getPrompt());
+            return ResponseEntity.ok(Map.of(
+                    "sql", result.get("sql"),
+                    "summary", result.getOrDefault("summary", ""),
+                    "confidence", result.getOrDefault("confidence", "medium"),
+                    "reason", result.getOrDefault("reason", "")));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of(
+                    "error", e.getMessage() != null ? e.getMessage() : "Failed to generate SQL query"
+            ));
+        }
     }
 
     // Step 2: Execute SQL + return data (0 AI calls — all enrichment from step 1)

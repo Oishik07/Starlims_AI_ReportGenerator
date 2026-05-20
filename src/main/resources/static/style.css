@@ -156,9 +156,30 @@ textarea:focus {
     transition: all 0.2s;
 }
 .chat-nav-btn:hover { background: #f0f5ff; border-color: var(--sl-blue); }
-
-.header-chat-btn {
-    margin-left: auto;
+.chat-fab-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 9999;
+    background: var(--sl-blue);
+    color: white !important;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.8rem 1.4rem;
+    border-radius: 99px;
+    box-shadow: 0 4px 16px rgba(15, 75, 143, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+.chat-fab-btn:hover {
+    background: var(--sl-blue-light);
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15, 75, 143, 0.45);
 }
 
 .spinner-ring {
@@ -492,9 +513,9 @@ textarea:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(238, 242, 248, 0.78);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: rgba(238, 242, 248, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
@@ -525,7 +546,7 @@ textarea:focus {
     border-radius: 23px;
     background: linear-gradient(
         90deg,
-        #ff2a5f, #ff7033, #ffb32c, #4285f4, #d938ff, #ff2a5f
+        #4285f4, #9b51e0, #ff2a5f, #e8f0fe, #4285f4
     );
     background-size: 300% 100%;
     z-index: -1;
@@ -544,8 +565,8 @@ textarea:focus {
 }
 
 @keyframes shimmer-card-border {
-    0% { background-position: 0% 50%; opacity: 0.6; filter: blur(4px); }
-    100% { background-position: 100% 50%; opacity: 0.95; filter: blur(7px); }
+    0% { background-position: 0% 50%; opacity: 0.3; filter: blur(2px); }
+    100% { background-position: 100% 50%; opacity: 0.6; filter: blur(4px); }
 }
 
 .proc-brand {
@@ -760,9 +781,11 @@ textarea:focus {
         padding-bottom: 1rem;
         margin-bottom: 1rem;
     }
-    .header-chat-btn {
-        margin-left: 0;
-        margin-top: 0.5rem;
+    .chat-fab-btn {
+        bottom: 1.25rem;
+        right: 1.25rem;
+        padding: 0.7rem 1.1rem;
+        font-size: 0.82rem;
     }
     .divider {
         display: none;
