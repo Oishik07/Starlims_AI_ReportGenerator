@@ -4,6 +4,7 @@ let currentSummary = "";
 let currentConfidence = "";
 let currentReason = "";
 let currentPage = 1;
+let globalTotalCount = 0;
 const PAGE_SIZE = 10;
 
 const REASONING_STEPS = [
@@ -117,6 +118,39 @@ async function generateReport() {
         currentConfidence = step1.confidence;
         currentReason = step1.reason;
         currentPage = 1;
+
+        // Fetch total count
+        let baseSql = step1.sql.replace(/;+$/, '').trim();
+        baseSql = baseSql.replace(/LIMIT\s+\d+/gi, '').trim(); 
+        baseSql = baseSql.replace(/OFFSET\s+\d+/gi, '').trim();
+        const countSql = `SELECT COUNT(*) AS total_count FROM (${baseSql}) AS temp_count;`;
+        
+        globalTotalCount = 0;
+        try {
+            const countResp = await fetch('/ai/sql/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt:     promptValue,
+                    sql:        countSql,
+                    summary:    step1.summary    || '',
+                    confidence: step1.confidence || 'medium',
+                    reason:     step1.reason     || ''
+                })
+            });
+            if (countResp.ok) {
+                const countResult = await countResp.json();
+                if (countResult.data && countResult.data.length > 0) {
+                    const row = countResult.data[0];
+                    const countKey = Object.keys(row).find(k => k.toLowerCase().includes('count'));
+                    if (countKey) {
+                        globalTotalCount = parseInt(row[countKey], 10) || 0;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch total count:", e);
+        }
 
         const latency = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
 
@@ -388,9 +422,10 @@ function updatePaginationUI(hasNextPage) {
     
     if (pagContainer) {
         pagContainer.style.display = 'flex';
-        pageIndicator.innerText = `Page ${currentPage}`;
+        const totalPages = Math.max(1, Math.ceil(globalTotalCount / PAGE_SIZE));
+        pageIndicator.innerText = `Page ${currentPage}/${totalPages}`;
         
         prevBtn.disabled = (currentPage === 1);
-        nextBtn.disabled = !hasNextPage;
+        nextBtn.disabled = !hasNextPage || (globalTotalCount > 0 && currentPage >= totalPages);
     }
 }

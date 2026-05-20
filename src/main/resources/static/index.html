@@ -50,6 +50,10 @@
         <h1 id="altLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:22px; display:none;">STARLIMS</h1>
         <div class="divider"></div>
         <h2 class="app-title">AI REPORT GENERATOR</h2>
+        <button onclick="window.location.href='chat.html'" class="chat-nav-btn header-chat-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            AI Chat
+        </button>
     </header>
 
     <!-- Two-column body -->
@@ -60,10 +64,6 @@
             <div class="input-container">
                 <textarea id="promptInput" placeholder="Describe what you need — e.g. Show samples processed after March 2026 with abnormal test results" rows="3"></textarea>
                 <div class="button-row">
-                    <button onclick="window.location.href='chat.html'" class="chat-nav-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                        AI Chat
-                    </button>
                     <button id="generateBtn" onclick="generateReport()" class="primary-btn">
                         <span id="btnText">Generate Report</span>
                         <div id="btnSpinner" class="spinner-ring" style="display:none;"></div>
