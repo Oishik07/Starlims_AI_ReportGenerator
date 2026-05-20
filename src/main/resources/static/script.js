@@ -221,6 +221,9 @@ async function generateReport() {
 // ── Processing UI helpers ─────────────────────────────────────
 
 function startProcessingUI() {
+    const chatFabBtn = document.getElementById('chatFabBtn');
+    if (chatFabBtn) chatFabBtn.classList.add('disabled');
+
     // Show glow borders
     document.getElementById('borderGlow').classList.add('active');
 
@@ -260,6 +263,9 @@ function startProcessingUI() {
 }
 
 function stopProcessingUI() {
+    const chatFabBtn = document.getElementById('chatFabBtn');
+    if (chatFabBtn) chatFabBtn.classList.remove('disabled');
+
     document.getElementById('borderGlow').classList.remove('active');
     document.getElementById('procOverlay').classList.remove('active');
     document.getElementById('reasoningSection').style.display = 'none';
