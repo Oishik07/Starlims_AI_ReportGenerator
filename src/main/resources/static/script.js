@@ -577,8 +577,17 @@ async function renderDashboard() {
         // 2. Charts
         let chartIndex = 0;
 
-        // Loop over all categorical columns (max 4 to avoid too many charts)
-        categoricalCols.slice(0, 4).forEach(catCol => {
+        // Intelligently find the top 10 most important categorical columns to chart.
+        // We do this by calculating cardinality (unique values).
+        // High cardinality (like UUIDs or notes) are bad for charts. We want columns with 1 < unique values < 30.
+        const validCategoricalCols = categoricalCols.filter(catCol => {
+            const uniqueValues = new Set();
+            data.forEach(r => { if(r[catCol]) uniqueValues.add(r[catCol]); });
+            return uniqueValues.size > 1 && uniqueValues.size < 30;
+        });
+
+        // Loop over the top 10 most meaningful categorical columns
+        validCategoricalCols.slice(0, 10).forEach(catCol => {
             if (numericalCols.length > 0) {
                 const numCol = numericalCols[0];
                 const agg = {};
