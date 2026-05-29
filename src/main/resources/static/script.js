@@ -577,43 +577,68 @@ async function renderDashboard() {
         // 2. Charts
         let chartIndex = 0;
 
-        if (categoricalCols.length > 0 && numericalCols.length > 0) {
-            const catCol = categoricalCols[0];
-            const numCol = numericalCols[0];
-            const agg = {};
-            data.forEach(r => {
-                const c = r[catCol] || 'Unknown';
-                agg[c] = (agg[c] || 0) + (Number(r[numCol]) || 0);
-            });
-            createChartCard(chartsContainer, chartIndex++, `Sum of ${numCol.replace(/_/g, ' ')} by ${catCol.replace(/_/g, ' ')}`, 'bar', Object.keys(agg), Object.values(agg));
-            createChartCard(chartsContainer, chartIndex++, `${catCol.replace(/_/g, ' ')} Distribution`, 'doughnut', Object.keys(agg), Object.values(agg));
-        } else if (categoricalCols.length > 0) {
-            const catCol = categoricalCols[0];
-            const agg = {};
-            data.forEach(r => {
-                const c = r[catCol] || 'Unknown';
-                agg[c] = (agg[c] || 0) + 1;
-            });
-            createChartCard(chartsContainer, chartIndex++, `Count by ${catCol.replace(/_/g, ' ')}`, 'pie', Object.keys(agg), Object.values(agg));
-            createChartCard(chartsContainer, chartIndex++, `${catCol.replace(/_/g, ' ')} Bar Chart`, 'bar', Object.keys(agg), Object.values(agg));
-        }
+        // Loop over all categorical columns (max 4 to avoid too many charts)
+        categoricalCols.slice(0, 4).forEach(catCol => {
+            if (numericalCols.length > 0) {
+                const numCol = numericalCols[0];
+                const agg = {};
+                data.forEach(r => {
+                    const c = r[catCol] || 'Unknown';
+                    agg[c] = (agg[c] || 0) + (Number(r[numCol]) || 0);
+                });
+                createChartCard(chartsContainer, chartIndex++, `Sum of ${numCol.replace(/_/g, ' ')} by ${catCol.replace(/_/g, ' ')}`, 'bar', Object.keys(agg), Object.values(agg));
+            } else {
+                const agg = {};
+                data.forEach(r => {
+                    const c = r[catCol] || 'Unknown';
+                    agg[c] = (agg[c] || 0) + 1;
+                });
+                createChartCard(chartsContainer, chartIndex++, `Count by ${catCol.replace(/_/g, ' ')}`, 'doughnut', Object.keys(agg), Object.values(agg));
+                createChartCard(chartsContainer, chartIndex++, `${catCol.replace(/_/g, ' ')} Bar Chart`, 'bar', Object.keys(agg), Object.values(agg));
+            }
+        });
 
-        if (dateCols.length > 0 && numericalCols.length > 0) {
-            const dCol = dateCols[0];
-            const nCol = numericalCols[0];
+        // Loop over date columns
+        dateCols.slice(0, 2).forEach(dCol => {
             const agg = {};
             data.forEach(r => {
                 let d = r[dCol];
                 if (d) d = String(d).split('T')[0];
                 else d = 'Unknown';
-                agg[d] = (agg[d] || 0) + (Number(r[nCol]) || 0);
+                if (d !== 'Unknown') {
+                    agg[d] = (agg[d] || 0) + 1;
+                }
             });
             const sortedDates = Object.keys(agg).sort();
             const sortedVals = sortedDates.map(d => agg[d]);
-            createChartCard(chartsContainer, chartIndex++, `${nCol.replace(/_/g, ' ')} over Time`, 'line', sortedDates, sortedVals);
+            if (sortedDates.length > 0) {
+                createChartCard(chartsContainer, chartIndex++, `Records by ${dCol.replace(/_/g, ' ')}`, 'line', sortedDates, sortedVals);
+            }
+        });
+
+        // Created vs Processed Time (if both exist)
+        const createdCol = dateCols.find(c => c.toLowerCase().includes('create'));
+        const processedCol = dateCols.find(c => c.toLowerCase().includes('process'));
+        if (createdCol && processedCol) {
+            let totalDiff = 0;
+            let validRows = 0;
+            data.forEach(r => {
+                if (r[createdCol] && r[processedCol]) {
+                    const d1 = new Date(r[createdCol]);
+                    const d2 = new Date(r[processedCol]);
+                    if (!isNaN(d1) && !isNaN(d2)) {
+                        totalDiff += (d2 - d1) / (1000 * 60 * 60 * 24); // difference in days
+                        validRows++;
+                    }
+                }
+            });
+            if (validRows > 0) {
+                const avgDays = (totalDiff / validRows).toFixed(2);
+                addKpiCard(kpiContainer, 'Avg Processing Time (Days)', avgDays);
+            }
         }
 
-        if (chartIndex === 0 && numericalCols.length > 1) {
+        if (chartIndex === 0 && numericalCols.length > 0) {
             const labels = data.map((_, i) => `Record ${i+1}`);
             const vals = data.map(r => Number(r[numericalCols[0]]) || 0);
             createChartCard(chartsContainer, chartIndex++, `${numericalCols[0].replace(/_/g, ' ')} Values`, 'bar', labels.slice(0,20), vals.slice(0,20));
