@@ -546,6 +546,11 @@ async function renderDashboard() {
         const dateCols = [];
 
         keys.forEach(k => {
+            const lowerK = k.toLowerCase();
+            if (lowerK === 'id' || lowerK.endsWith('_id') || lowerK.endsWith('id')) {
+                return; // Skip ID columns completely so they don't appear in charts
+            }
+
             let isNum = true;
             let isDate = false;
             for (let i = 0; i < Math.min(data.length, 10); i++) {
@@ -656,9 +661,18 @@ function createChartCard(container, index, title, type, labels, dataPoints) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 2000,
+                easing: 'easeOutQuart'
+            },
             plugins: {
-                legend: { display: type === 'pie' || type === 'doughnut', position: 'right' }
-            }
+                legend: { display: type === 'pie' || type === 'doughnut', position: 'right', labels: { font: { family: "'Inter', sans-serif" } } },
+                tooltip: { backgroundColor: 'rgba(15, 75, 143, 0.9)', titleFont: { family: "'Inter', sans-serif" }, bodyFont: { family: "'Inter', sans-serif" }, padding: 12, cornerRadius: 8 }
+            },
+            scales: type !== 'pie' && type !== 'doughnut' ? {
+                x: { grid: { display: false }, ticks: { font: { family: "'Inter', sans-serif" } } },
+                y: { grid: { borderDash: [5, 5], color: '#e8ecf4' }, ticks: { font: { family: "'Inter', sans-serif" } } }
+            } : {}
         }
     });
     currentCharts.push(chart);
