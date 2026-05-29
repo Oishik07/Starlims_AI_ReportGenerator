@@ -152,7 +152,7 @@ public class ReportService{
                 Example query 2:
                 User request: "Show me negative test results"
                 {
-                  "sql": "SELECT s.sample_name, tr.result_value FROM samples s JOIN test_results tr ON s.id = tr.sample_id WHERE tr.result_value ILIKE '%Negative%';",
+                  "sql": "SELECT s.sample_name, tr.result_value FROM samples s JOIN test_results tr ON s.id = tr.sample_id WHERE tr.result_value ILIKE '%%Negative%%';",
                   "summary": "Joining samples with test results to find negative outcomes.",
                   "confidence": "high",
                   "reason": "Matches the 'Negative' keyword in the test_results table."
