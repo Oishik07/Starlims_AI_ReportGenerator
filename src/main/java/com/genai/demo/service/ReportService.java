@@ -219,8 +219,9 @@ public class ReportService{
         );
 
         for (String keyword : blockedKeywords) {
-            if (lowerSql.contains(keyword)) {
-                throw new RuntimeException("Dangerous SQL detected");
+            // Use regex word boundaries (\b) to avoid matching "add" inside "addiction" or "drop" inside "droplets"
+            if (lowerSql.matches(".*\\b" + keyword + "\\b.*")) {
+                throw new RuntimeException("Dangerous SQL detected: " + keyword);
             }
         }
     }
