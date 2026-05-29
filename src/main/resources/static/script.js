@@ -68,6 +68,13 @@ async function generateReport() {
     resultsHeader.style.display  = 'none';
     dataGrid.style.display       = 'none';
 
+    if(document.getElementById('dashboardSection')) {
+        dashboardLoaded = false;
+        document.getElementById('viewTableBtn').classList.add('active');
+        document.getElementById('viewChartBtn').classList.remove('active');
+        document.getElementById('dashboardSection').style.display = 'none';
+    }
+
     // ── Show glow + centered overlay ─────────────────────────
     startProcessingUI();
     const startTime = Date.now();
@@ -461,4 +468,198 @@ function updatePaginationUI(hasNextPage) {
         prevBtn.disabled = (currentPage === 1);
         nextBtn.disabled = !hasNextPage || (globalTotalCount > 0 && currentPage >= totalPages);
     }
+}
+
+// ── Dashboard & Charts ──────────────────────────────────────────
+
+let dashboardLoaded = false;
+let currentCharts = [];
+
+function toggleView(view) {
+    const tableBtn = document.getElementById('viewTableBtn');
+    const chartBtn = document.getElementById('viewChartBtn');
+    const dataGrid = document.getElementById('dataGrid');
+    const dashboard = document.getElementById('dashboardSection');
+
+    if (view === 'table') {
+        tableBtn.classList.add('active');
+        chartBtn.classList.remove('active');
+        dataGrid.style.display = 'block';
+        dashboard.style.display = 'none';
+    } else {
+        chartBtn.classList.add('active');
+        tableBtn.classList.remove('active');
+        dataGrid.style.display = 'none';
+        dashboard.style.display = 'block';
+        
+        if (!dashboardLoaded) {
+            renderDashboard();
+        }
+    }
+}
+
+async function renderDashboard() {
+    dashboardLoaded = true;
+    const kpiContainer = document.getElementById('kpiContainer');
+    const chartsContainer = document.getElementById('chartsContainer');
+    
+    kpiContainer.innerHTML = 'Loading dashboard data...';
+    chartsContainer.innerHTML = '';
+    
+    // Clear previous charts
+    currentCharts.forEach(c => c.destroy());
+    currentCharts = [];
+
+    // Fetch up to 1000 rows for dashboard
+    let dashSql = currentGeneratedSql.replace(/;+$/, '').trim();
+    dashSql = dashSql.replace(/LIMIT\s+\d+/gi, '').trim(); 
+    dashSql = dashSql.replace(/OFFSET\s+\d+/gi, '').trim();
+    dashSql += ` LIMIT 1000 OFFSET 0;`;
+
+    try {
+        const execResp = await fetch('/ai/sql/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt: document.getElementById('promptInput').value.trim(),
+                sql: dashSql,
+                summary: currentSummary,
+                confidence: currentConfidence,
+                reason: currentReason
+            })
+        });
+
+        if (!execResp.ok) throw new Error('Failed to fetch dashboard data');
+        const result = await execResp.json();
+        const data = Array.isArray(result.data) ? result.data : [];
+        
+        kpiContainer.innerHTML = '';
+        if (data.length === 0) {
+            chartsContainer.innerHTML = '<p>No data available to generate charts.</p>';
+            return;
+        }
+
+        // Analyze columns
+        const keys = Object.keys(data[0]);
+        const numericalCols = [];
+        const categoricalCols = [];
+        const dateCols = [];
+
+        keys.forEach(k => {
+            let isNum = true;
+            let isDate = false;
+            for (let i = 0; i < Math.min(data.length, 10); i++) {
+                if (data[i][k] !== null && data[i][k] !== '') {
+                    if (isNaN(Number(data[i][k]))) isNum = false;
+                    if (typeof data[i][k] === 'string' && (data[i][k].includes('-') || data[i][k].includes('/')) && !isNaN(Date.parse(data[i][k]))) isDate = true;
+                }
+            }
+            if (isDate) { dateCols.push(k); }
+            else if (isNum) { numericalCols.push(k); }
+            else { categoricalCols.push(k); }
+        });
+
+        // 1. KPIs
+        const totalRows = globalTotalCount > 0 ? globalTotalCount : data.length;
+        addKpiCard(kpiContainer, 'Total Records', totalRows);
+        
+        numericalCols.forEach(numCol => {
+            let sum = 0;
+            data.forEach(row => sum += Number(row[numCol]) || 0);
+            addKpiCard(kpiContainer, `Total ${numCol.replace(/_/g, ' ')}`, sum.toLocaleString(undefined, {maximumFractionDigits: 2}));
+        });
+
+        // 2. Charts
+        let chartIndex = 0;
+
+        if (categoricalCols.length > 0 && numericalCols.length > 0) {
+            const catCol = categoricalCols[0];
+            const numCol = numericalCols[0];
+            const agg = {};
+            data.forEach(r => {
+                const c = r[catCol] || 'Unknown';
+                agg[c] = (agg[c] || 0) + (Number(r[numCol]) || 0);
+            });
+            createChartCard(chartsContainer, chartIndex++, `Sum of ${numCol.replace(/_/g, ' ')} by ${catCol.replace(/_/g, ' ')}`, 'bar', Object.keys(agg), Object.values(agg));
+            createChartCard(chartsContainer, chartIndex++, `${catCol.replace(/_/g, ' ')} Distribution`, 'doughnut', Object.keys(agg), Object.values(agg));
+        } else if (categoricalCols.length > 0) {
+            const catCol = categoricalCols[0];
+            const agg = {};
+            data.forEach(r => {
+                const c = r[catCol] || 'Unknown';
+                agg[c] = (agg[c] || 0) + 1;
+            });
+            createChartCard(chartsContainer, chartIndex++, `Count by ${catCol.replace(/_/g, ' ')}`, 'pie', Object.keys(agg), Object.values(agg));
+            createChartCard(chartsContainer, chartIndex++, `${catCol.replace(/_/g, ' ')} Bar Chart`, 'bar', Object.keys(agg), Object.values(agg));
+        }
+
+        if (dateCols.length > 0 && numericalCols.length > 0) {
+            const dCol = dateCols[0];
+            const nCol = numericalCols[0];
+            const agg = {};
+            data.forEach(r => {
+                let d = r[dCol];
+                if (d) d = String(d).split('T')[0];
+                else d = 'Unknown';
+                agg[d] = (agg[d] || 0) + (Number(r[nCol]) || 0);
+            });
+            const sortedDates = Object.keys(agg).sort();
+            const sortedVals = sortedDates.map(d => agg[d]);
+            createChartCard(chartsContainer, chartIndex++, `${nCol.replace(/_/g, ' ')} over Time`, 'line', sortedDates, sortedVals);
+        }
+
+        if (chartIndex === 0 && numericalCols.length > 1) {
+            const labels = data.map((_, i) => `Record ${i+1}`);
+            const vals = data.map(r => Number(r[numericalCols[0]]) || 0);
+            createChartCard(chartsContainer, chartIndex++, `${numericalCols[0].replace(/_/g, ' ')} Values`, 'bar', labels.slice(0,20), vals.slice(0,20));
+        }
+
+    } catch(e) {
+        console.error("Dashboard error", e);
+        chartsContainer.innerHTML = '<p>Error generating dashboard.</p>';
+    }
+}
+
+function addKpiCard(container, label, value) {
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.innerHTML = `<span class="kpi-label">${label}</span><span class="kpi-value">${value}</span>`;
+    container.appendChild(card);
+}
+
+function createChartCard(container, index, title, type, labels, dataPoints) {
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    card.innerHTML = `<h4 class="chart-title">${title}</h4><div class="chart-wrapper"><canvas id="dashChart_${index}"></canvas></div>`;
+    container.appendChild(card);
+
+    const ctx = document.getElementById(`dashChart_${index}`).getContext('2d');
+    const bgColors = ['#0f4b8f', '#00c6ff', '#34a853', '#fbbc04', '#ea4335', '#8e44ad', '#e67e22', '#2ecc71', '#16a085', '#d35400', '#2980b9', '#f39c12'];
+    
+    // Cycle colors if more labels than colors
+    const colors = labels.map((_, i) => bgColors[i % bgColors.length]);
+
+    const chart = new Chart(ctx, {
+        type: type,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: title,
+                data: dataPoints,
+                backgroundColor: type === 'line' ? 'rgba(15, 75, 143, 0.1)' : colors,
+                borderColor: type === 'line' ? '#0f4b8f' : (type === 'pie' || type === 'doughnut' ? '#fff' : colors),
+                borderWidth: type === 'line' ? 3 : 1,
+                fill: type === 'line',
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: type === 'pie' || type === 'doughnut', position: 'right' }
+            }
+        }
+    });
+    currentCharts.push(chart);
 }

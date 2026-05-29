@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=5.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -70,8 +71,20 @@
             <div id="statusMessage" class="status-alert" style="display:none;"></div>
 
             <div class="results-header" id="resultsHeader" style="display:none;">
-                <h3>Report</h3>
+                <div class="results-title-group">
+                    <h3>Report</h3>
+                    <div class="view-toggle">
+                        <button id="viewTableBtn" class="toggle-btn active" onclick="toggleView('table')">Table</button>
+                        <button id="viewChartBtn" class="toggle-btn" onclick="toggleView('chart')">Dashboard</button>
+                    </div>
+                </div>
                 <button class="export-btn" onclick="exportToExcel()">Export to Excel</button>
+            </div>
+
+            <!-- DASHBOARD VIEW -->
+            <div id="dashboardSection" class="dashboard-section" style="display:none;">
+                <div id="kpiContainer" class="kpi-grid"></div>
+                <div id="chartsContainer" class="charts-grid"></div>
             </div>
 
             <div class="data-grid" id="dataGrid" style="display:none;">

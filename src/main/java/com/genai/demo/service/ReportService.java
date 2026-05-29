@@ -140,44 +140,23 @@ public class ReportService{
                     Each record represents a test performed on a sample.
                     A sample can have multiple test results.
                     
-                Some example of queries:
-                
                 Example query 1:
-                
-                SELECT sample_name, result_value
-                FROM samples
-                JOIN test_results ON samples.id = test_results.sample_id
-                WHERE result_value = 'Negative';
+                User request: "Show me all samples"
+                {
+                  "sql": "SELECT * FROM samples LIMIT 10;",
+                  "summary": "Retrieving all samples from the database.",
+                  "confidence": "high",
+                  "reason": "Direct request for all samples maps clearly to the samples table."
+                }
                 
                 Example query 2:
-                
-                SELECT
-                  s.id,
-                  s.created_date,
-                  s.lab_technician,
-                  s.sample_name,
-                  s.status,
-                  s.processed_date,
-                  si.storage_location,
-                  si.quantity_ml,
-                  si.storage_temperature,
-                  si.expiry_date,
-                  si.last_updated,
-                  tr.sample_id,
-                  tr.test_type,
-                  tr.result_value,
-                  tr.unit,
-                  tr.reference_range,
-                  tr.result_status,
-                  tr.verified_by,
-                  tr.verified_date
-                FROM
-                  samples s
-                  LEFT JOIN sample_inventory si ON s.id = si.sample_id
-                  LEFT JOIN test_results tr ON s.id = tr.sample_id AND tr.result_status = 'NORMAL'
-                WHERE
-                  s.status = 'PROCESSED';
-                
+                User request: "Show me negative test results"
+                {
+                  "sql": "SELECT s.sample_name, tr.result_value FROM samples s JOIN test_results tr ON s.id = tr.sample_id WHERE tr.result_value ILIKE '%Negative%';",
+                  "summary": "Joining samples with test results to find negative outcomes.",
+                  "confidence": "high",
+                  "reason": "Matches the 'Negative' keyword in the test_results table."
+                }
 
                 Rules:
                 - Only generate SELECT queries
