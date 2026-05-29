@@ -165,7 +165,9 @@ public class AIService {
      * Parses the AI JSON response into sql + summary.
      * Falls back gracefully if the model doesn't return valid JSON.
      */
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true)
+            .configure(com.fasterxml.jackson.core.JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
 
     /**
      * Parses the AI JSON response into sql, summary, confidence, and reason.
@@ -175,12 +177,14 @@ public class AIService {
         if (raw == null) {
             return Map.of("sql", "", "summary", "", "confidence", "low", "reason", "Raw response is null");
         }
+        String jsonStr = raw.trim();
         try {
             // Find the JSON block — strip any surrounding markdown or prose
             int start = raw.indexOf('{');
             int end   = raw.lastIndexOf('}');
-            if (start == -1 || end == -1) throw new RuntimeException("No JSON object found");
-            String jsonStr = raw.substring(start, end + 1);
+            if (start != -1 && end != -1 && end > start) {
+                jsonStr = raw.substring(start, end + 1);
+            }
 
             JsonNode node = MAPPER.readTree(jsonStr);
             return Map.of(
@@ -190,8 +194,51 @@ public class AIService {
                     "reason",     node.path("reason").asText("")
             );
         } catch (Exception e) {
-            // Fallback: treat the whole response as raw SQL
+            // Fallback: Jackson failed, let's extract using regex before falling back to treating whole string as SQL
+            String sql = extractField(jsonStr, "sql");
+            String summary = extractField(jsonStr, "summary");
+            String confidence = extractField(jsonStr, "confidence");
+            String reason = extractField(jsonStr, "reason");
+
+            if (sql != null && !sql.isEmpty()) {
+                return Map.of(
+                        "sql", sql,
+                        "summary", summary != null ? summary : "",
+                        "confidence", (confidence != null && !confidence.isEmpty()) ? confidence : "medium",
+                        "reason", reason != null ? reason : ""
+                );
+            }
+
+            // Absolute fallback: if raw starts with SELECT, treat it as raw SQL directly
+            String cleanedRaw = raw.trim();
+            if (cleanedRaw.toLowerCase().startsWith("select")) {
+                return Map.of("sql", cleanedRaw, "summary", "", "confidence", "medium", "reason", "");
+            }
+
+            // Return raw as sql so it fails/succeeds validation naturally
             return Map.of("sql", raw.trim(), "summary", "", "confidence", "medium", "reason", "");
         }
+    }
+
+    private String extractField(String json, String fieldName) {
+        // Regex to extract double-quoted field values that might span multiple lines
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "\"" + fieldName + "\"\\s*:\\s*\"([\\s\\S]*?)\"\\s*(?:,|\\})",
+                java.util.regex.Pattern.CASE_INSENSITIVE
+        );
+        java.util.regex.Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) {
+            return unescapeJsonString(matcher.group(1));
+        }
+        return null;
+    }
+
+    private String unescapeJsonString(String val) {
+        if (val == null) return null;
+        return val.replace("\\\"", "\"")
+                  .replace("\\n", "\n")
+                  .replace("\\t", "\t")
+                  .replace("\\\\", "\\")
+                  .trim();
     }
 }

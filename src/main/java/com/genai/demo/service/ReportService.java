@@ -234,6 +234,22 @@ public class ReportService{
 
         String cleaned = rawSql.trim();
 
+        // If we somehow received a JSON-like string, extract the SQL field from it
+        if (cleaned.startsWith("{") && cleaned.contains("\"sql\"")) {
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                    "\"sql\"\\s*:\\s*\"([\\s\\S]*?)\"\\s*(?:,|\\})",
+                    java.util.regex.Pattern.CASE_INSENSITIVE
+            );
+            java.util.regex.Matcher matcher = pattern.matcher(cleaned);
+            if (matcher.find()) {
+                cleaned = matcher.group(1)
+                        .replace("\\\"", "\"")
+                        .replace("\\n", "\n")
+                        .replace("\\\\", "\\")
+                        .trim();
+            }
+        }
+
         // Remove ```sql ... ``` or ``` ... ```
         if (cleaned.startsWith("```")) {
             cleaned = cleaned.replaceAll("^```[a-zA-Z]*\\n?", ""); // strip opening fence
