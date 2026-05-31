@@ -65,12 +65,16 @@ public class AIController {
     }
 
     @PostMapping("/generateReport")
-    public ResponseEntity<Map<String, Object>> generateReport(
+    public ResponseEntity<?> generateReport(
             @RequestBody PromptRequest request) {
-
-        Map<String, Object> result = reportService.generateReport(request.getPrompt());
-
-        return ResponseEntity.ok(result);
+        try {
+            Map<String, Object> result = reportService.generateReport(request.getPrompt());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", e.getMessage() != null ? e.getMessage() : "Failed to generate report"
+            ));
+        }
     }
 
     // Step 1: Generate + validate SQL — returns sql, summary, confidence, reason (1
@@ -94,14 +98,20 @@ public class AIController {
 
     // Step 2: Execute SQL + return data (0 AI calls — all enrichment from step 1)
     @PostMapping("/sql/execute")
-    public ResponseEntity<Map<String, Object>> executeSql(
+    public ResponseEntity<?> executeSql(
             @RequestBody Map<String, String> request) {
-        String prompt = request.get("prompt");
-        String sql = request.get("sql");
-        String summary = request.getOrDefault("summary", "");
-        String confidence = request.getOrDefault("confidence", "medium");
-        String reason = request.getOrDefault("reason", "");
-        Map<String, Object> result = reportService.executeReport(prompt, sql, summary, confidence, reason);
-        return ResponseEntity.ok(result);
+        try {
+            String prompt = request.get("prompt");
+            String sql = request.get("sql");
+            String summary = request.getOrDefault("summary", "");
+            String confidence = request.getOrDefault("confidence", "medium");
+            String reason = request.getOrDefault("reason", "");
+            Map<String, Object> result = reportService.executeReport(prompt, sql, summary, confidence, reason);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", e.getMessage() != null ? e.getMessage() : "Failed to execute SQL query"
+            ));
+        }
     }
 }

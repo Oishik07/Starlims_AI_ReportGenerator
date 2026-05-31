@@ -27,7 +27,7 @@ public class ReportService{
                     step1.get("confidence"), step1.get("reason"));
         } catch (Exception e) {
             log.error("Error generating report", e);
-            throw new RuntimeException("Failed to generate report");
+            throw new RuntimeException(e.getMessage() != null ? e.getMessage() : "Failed to generate report", e);
         }
     }
 

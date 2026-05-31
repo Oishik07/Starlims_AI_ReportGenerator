@@ -506,6 +506,17 @@ async function renderDashboard() {
     kpiContainer.innerHTML = 'Loading dashboard data...';
     chartsContainer.innerHTML = '';
     
+    // Reset chart filter UI
+    const allBtn = document.getElementById('chartFilterAll');
+    const barBtn = document.getElementById('chartFilterBar');
+    const circBtn = document.getElementById('chartFilterCircular');
+    if (allBtn) {
+        allBtn.classList.add('active');
+        if (barBtn) barBtn.classList.remove('active');
+        if (circBtn) circBtn.classList.remove('active');
+    }
+    currentChartFilter = 'all';
+
     // Clear previous charts
     currentCharts.forEach(c => c.destroy());
     currentCharts = [];
@@ -669,6 +680,7 @@ function addKpiCard(container, label, value) {
 function createChartCard(container, index, title, type, labels, dataPoints) {
     const card = document.createElement('div');
     card.className = 'chart-card';
+    card.setAttribute('data-chart-type', (type === 'pie' || type === 'doughnut') ? 'circular' : 'bar');
     card.innerHTML = `<h4 class="chart-title">${title}</h4><div class="chart-wrapper"><canvas id="dashChart_${index}"></canvas></div>`;
     container.appendChild(card);
 
@@ -710,4 +722,30 @@ function createChartCard(container, index, title, type, labels, dataPoints) {
         }
     });
     currentCharts.push(chart);
+}
+
+let currentChartFilter = 'all';
+
+function filterCharts(filterType) {
+    currentChartFilter = filterType;
+    
+    const allBtn = document.getElementById('chartFilterAll');
+    const barBtn = document.getElementById('chartFilterBar');
+    const circBtn = document.getElementById('chartFilterCircular');
+    
+    if (allBtn) allBtn.classList.toggle('active', filterType === 'all');
+    if (barBtn) barBtn.classList.toggle('active', filterType === 'bar');
+    if (circBtn) circBtn.classList.toggle('active', filterType === 'circular');
+    
+    const cards = document.querySelectorAll('.chart-card');
+    cards.forEach(card => {
+        const type = card.getAttribute('data-chart-type');
+        if (filterType === 'all') {
+            card.style.display = 'block';
+        } else if (filterType === 'bar') {
+            card.style.display = (type === 'bar') ? 'block' : 'none';
+        } else if (filterType === 'circular') {
+            card.style.display = (type === 'circular') ? 'block' : 'none';
+        }
+    });
 }

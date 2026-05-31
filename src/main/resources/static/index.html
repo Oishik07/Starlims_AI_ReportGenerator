@@ -83,6 +83,14 @@
 
             <!-- DASHBOARD VIEW -->
             <div id="dashboardSection" class="dashboard-section" style="display:none;">
+                <div class="dashboard-controls" style="margin-bottom: 1.5rem; display: flex; justify-content: flex-start; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Filter Charts:</span>
+                    <div class="view-toggle" id="chartTypeToggle">
+                        <button id="chartFilterAll" class="toggle-btn active" onclick="filterCharts('all')">All Charts</button>
+                        <button id="chartFilterBar" class="toggle-btn" onclick="filterCharts('bar')">Bar &amp; Line</button>
+                        <button id="chartFilterCircular" class="toggle-btn" onclick="filterCharts('circular')">Circular</button>
+                    </div>
+                </div>
                 <div id="kpiContainer" class="kpi-grid"></div>
                 <div id="chartsContainer" class="charts-grid"></div>
             </div>
