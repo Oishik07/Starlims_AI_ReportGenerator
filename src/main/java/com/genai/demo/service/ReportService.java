@@ -257,6 +257,11 @@ public class ReportService{
             cleaned = cleaned.trim();
         }
 
+        // Strip shell-style line continuation backslashes the LLM sometimes adds
+        // e.g. "SELECT * \\\nFROM samples" → "SELECT * \nFROM samples"
+        cleaned = cleaned.replaceAll("\\\\\\s*\\n", "\n");  // backslash + optional spaces + newline
+        cleaned = cleaned.replaceAll("\\\\\\s*$", "");       // trailing backslash at very end
+
         return cleaned;
     }
 }
