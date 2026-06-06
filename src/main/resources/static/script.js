@@ -13,6 +13,25 @@ let currentUserRole = null;
 let currentSelectedReviewId = null;
 
 function loginAs(role) {
+    const btnClass = role === 'Lab Admin' ? '.lab-admin-btn' : '.lims-admin-btn';
+    const btn = document.querySelector(btnClass);
+    
+    if (btn) {
+        const origContent = btn.innerHTML;
+        btn.innerHTML = '<div class="spinner-ring" style="width:16px;height:16px;border-color:rgba(15,75,143,0.2);border-top-color:#0f4b8f;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Opening...';
+        btn.style.pointerEvents = 'none';
+        
+        setTimeout(() => {
+            btn.innerHTML = origContent;
+            btn.style.pointerEvents = 'auto';
+            proceedLogin(role);
+        }, 800);
+    } else {
+        proceedLogin(role);
+    }
+}
+
+function proceedLogin(role) {
     currentUserRole = role;
     const loginModal = document.getElementById('loginModal');
     loginModal.style.opacity = '0';
@@ -67,9 +86,39 @@ function logout() {
         document.getElementById('dataGrid').style.display = 'none';
         document.getElementById('dashboardSection').style.display = 'none';
         document.getElementById('resultsHeader').style.display = 'none';
+        
         const rightCol = document.getElementById('rightCol');
         if(rightCol) rightCol.style.display = 'none';
+        
+        const askAi = document.getElementById('askAiContainer');
+        if(askAi) askAi.style.display = 'block';
+        
+        const newRepBtn = document.getElementById('newReportBtnContainer');
+        if(newRepBtn) newRepBtn.style.display = 'none';
+        
+        globalReportData = null;
+        currentGeneratedSql = "";
+        currentSummary = "";
+        currentOriginalQuery = "";
     }, 300);
+}
+
+function resetToGenerate() {
+    document.getElementById('newReportBtnContainer').style.display = 'none';
+    document.getElementById('askAiContainer').style.display = 'block';
+    
+    document.getElementById('promptInput').value = '';
+    document.getElementById('statusMessage').style.display = 'none';
+    document.getElementById('dataGrid').style.display = 'none';
+    document.getElementById('dashboardSection').style.display = 'none';
+    document.getElementById('resultsHeader').style.display = 'none';
+    const rightCol = document.getElementById('rightCol');
+    if (rightCol) rightCol.style.display = 'none';
+    
+    globalReportData = null;
+    currentGeneratedSql = "";
+    currentSummary = "";
+    currentOriginalQuery = "";
 }
 
 const REASONING_STEPS = [
@@ -915,51 +964,141 @@ async function fetchReportStatus() {
     }
 }
 
-function openViewReport(id) {
+async function openViewReport(id) {
     const report = window._allReports.find(r => r.id === id);
     if (!report) return;
     
-    document.getElementById('viewReportQuery').innerText = report.userQuery;
-    document.getElementById('viewReportSummary').innerText = report.summary || 'No explanation available.';
-    document.getElementById('viewReportSql').innerText = report.generatedSql;
+    closeReportStatus();
     
-    const thead = document.getElementById('viewReportDataHead');
-    const tbody = document.getElementById('viewReportDataBody');
-    thead.innerHTML = '';
-    tbody.innerHTML = '';
+    // Hide ASK AI textbox and show Back to New Report button
+    document.getElementById('askAiContainer').style.display = 'none';
+    document.getElementById('newReportBtnContainer').style.display = 'block';
     
-    let results = [];
-    try {
-        results = JSON.parse(report.resultData);
-    } catch (e) {}
-    
-    if (results && results.length > 0) {
-        const cols = Object.keys(results[0]);
-        thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
-        
-        results.slice(0, 50).forEach(row => {
-            const tr = document.createElement('tr');
-            cols.forEach(c => {
-                const td = document.createElement('td');
-                td.innerText = row[c] !== null && row[c] !== undefined ? row[c] : '';
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        });
-        if (results.length > 50) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="${cols.length}" style="text-align:center; font-style:italic; color:#64748b;">Showing first 50 rows of snapshot</td>`;
-            tbody.appendChild(tr);
-        }
-    } else {
-        tbody.innerHTML = '<tr><td style="text-align:center;">No data in snapshot.</td></tr>';
+    // Reset views
+    document.getElementById('statusMessage').style.display = 'none';
+    document.getElementById('resultsHeader').style.display = 'none';
+    document.getElementById('dataGrid').style.display = 'none';
+    if(document.getElementById('dashboardSection')) {
+        dashboardLoaded = false;
+        document.getElementById('viewTableBtn').classList.add('active');
+        document.getElementById('viewChartBtn').classList.remove('active');
+        document.getElementById('dashboardSection').style.display = 'none';
     }
     
-    document.getElementById('viewReportModal').style.display = 'flex';
-}
+    // Set global variables
+    currentGeneratedSql = report.generatedSql;
+    currentSummary = report.summary || '';
+    currentConfidence = "high";
+    currentReason = "Loaded from history.";
+    currentOriginalQuery = report.userQuery;
+    currentPage = 1;
+    
+    // Start processing UI to show we are loading
+    startProcessingUI();
+    const startTime = Date.now();
+    
+    try {
+        // Organic loading effect
+        await markStepAfter(0, 150);
+        await markStepAfter(1, 150);
+        await markStepAfter(2, 150);
+        await markStepAfter(3, 150);
+        await markStepAfter(4, 150);
 
-function closeViewReport() {
-    document.getElementById('viewReportModal').style.display = 'none';
+        let initialSql = currentGeneratedSql.replace(/;+$/, '').trim();
+        initialSql = initialSql.replace(/LIMIT\s+\d+/gi, '').trim(); 
+        initialSql = initialSql.replace(/OFFSET\s+\d+/gi, '').trim();
+        initialSql += ` LIMIT ${PAGE_SIZE + 1} OFFSET 0;`;
+
+        // Execute query to get full pagination
+        const execResp = await fetch('/ai/sql/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt:     currentOriginalQuery,
+                sql:        initialSql,
+                summary:    currentSummary,
+                confidence: currentConfidence,
+                reason:     currentReason
+            })
+        });
+        
+        if (!execResp.ok) throw new Error("Failed to load report data");
+        const result = await execResp.json();
+        markStep(5); // Fetching results complete
+
+        // Fetch total count for pagination
+        let baseSql = currentGeneratedSql.replace(/;+$/, '').trim();
+        baseSql = baseSql.replace(/LIMIT\s+\d+/gi, '').trim(); 
+        baseSql = baseSql.replace(/OFFSET\s+\d+/gi, '').trim();
+        const countSql = `SELECT COUNT(*) AS total_count FROM (${baseSql}) AS temp_count;`;
+        
+        globalTotalCount = 0;
+        try {
+            const countResp = await fetch('/ai/sql/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt:     currentOriginalQuery,
+                    sql:        countSql,
+                    summary:    currentSummary,
+                    confidence: currentConfidence,
+                    reason:     currentReason
+                })
+            });
+            if (countResp.ok) {
+                const countResult = await countResp.json();
+                if (countResult.data && countResult.data.length > 0) {
+                    const row = countResult.data[0];
+                    const countKey = Object.keys(row).find(k => k.toLowerCase().includes('count'));
+                    if (countKey) {
+                        globalTotalCount = parseInt(row[countKey], 10) || 0;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch total count:", e);
+        }
+
+        const latency = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+        await delay(300); // Allow UI to settle
+
+        stopProcessingUI();
+        populateAiPanel(
+            currentGeneratedSql,
+            currentSummary,
+            currentConfidence,
+            currentReason,
+            latency,
+            "Cached Report"
+        );
+
+        // Process data array and pagination
+        const parsedData = Array.isArray(result.data) ? result.data : [];
+        let hasNextPage = false;
+        let dataToRender = parsedData;
+        if (parsedData.length > PAGE_SIZE) {
+            hasNextPage = true;
+            dataToRender = parsedData.slice(0, PAGE_SIZE); 
+        }
+
+        if (dataToRender.length > 0) {
+            globalReportData = dataToRender;
+            buildTable(dataToRender);
+            updatePaginationUI(hasNextPage);
+            document.getElementById('resultsHeader').style.display = 'flex';
+            document.getElementById('dataGrid').style.display = 'block';
+        } else {
+            showStatus('Query executed successfully, but returned 0 rows.', 'info');
+        }
+
+    } catch (err) {
+        console.error('Error:', err);
+        showStatus(`Error loading report: ${err.message}`, 'error');
+        stopProcessingUI();
+        const panel = document.getElementById('rightCol');
+        if (panel) panel.style.display = 'none';
+    }
 }
 
 // Lims Admin Functions

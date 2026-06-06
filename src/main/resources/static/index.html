@@ -85,7 +85,7 @@
         
         <div class="header-actions" id="headerActions" style="display:none;">
             <span id="currentUserDisplay" class="current-user-badge">Role</span>
-            <button id="reportStatusBtn" class="secondary-btn" onclick="openReportStatus()" style="display:none; border: 1px solid var(--red); color: var(--red);">Report Status</button>
+            <button id="reportStatusBtn" class="secondary-btn" onclick="openReportStatus()" style="display:none; border: 1px solid var(--sl-blue); color: var(--sl-blue);">Report Status</button>
             <button id="logoutBtn" class="secondary-btn" onclick="logout()" style="border: 1px solid var(--red); color: var(--red);">Logout</button>
         </div>
     </header>
@@ -95,7 +95,13 @@
 
         <!-- LEFT: Main content -->
         <div class="main-col">
-            <div class="input-container">
+            <div id="newReportBtnContainer" style="display:none; margin-bottom: 1.25rem;">
+                <button class="secondary-btn" onclick="resetToGenerate()" style="display:flex; align-items:center; gap:0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    Back to New Report
+                </button>
+            </div>
+            <div class="input-container" id="askAiContainer">
                 <textarea id="promptInput" placeholder="Describe what you need — e.g. Show samples processed after March 2026 with abnormal test results" rows="3"></textarea>
                 <div class="button-row">
                     <button id="generateBtn" onclick="generateReport()" class="primary-btn">
@@ -320,38 +326,7 @@
     </div>
 </div>
 
-<!-- ── View Report Modal (Lab Admin) ── -->
-<div id="viewReportModal" class="login-modal-overlay" style="display:none; z-index: 10000;">
-    <div class="status-modal-card" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-        <div class="status-header">
-            <h2>Report Preview</h2>
-            <button class="close-btn" onclick="closeViewReport()">&times;</button>
-        </div>
-        <div style="margin-top: 20px;">
-            <div class="detail-section">
-                <h4>User Query</h4>
-                <p id="viewReportQuery" class="detail-text"></p>
-            </div>
-            <div class="detail-section">
-                <h4>AI Explanation</h4>
-                <p id="viewReportSummary" class="detail-text" style="background:#eef2ff; border-color:#c7d2fe; color:#312e81;"></p>
-            </div>
-            <div class="detail-section">
-                <h4>Generated SQL</h4>
-                <pre id="viewReportSql" class="ai-sql-pre"></pre>
-            </div>
-            <div class="detail-section">
-                <h4>Data Snapshot</h4>
-                <div class="table-scroll-wrapper" style="max-height: 300px;">
-                    <table class="lims-table">
-                        <thead id="viewReportDataHead"></thead>
-                        <tbody id="viewReportDataBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <a href="chat.html" class="chat-fab-btn" id="chatFabBtn" title="Open AI Chat">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
