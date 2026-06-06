@@ -17,7 +17,7 @@
         <div class="login-header">
             <img src="logo.png" alt="STARLIMS" class="login-logo" onerror="this.style.display='none'; document.getElementById('altLoginLogo').style.display='block';">
             <h1 id="altLoginLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:24px; display:none;">STARLIMS</h1>
-            <h2>Welcome Back</h2>
+            <h2>Starlims</h2>
             <p>Select your role to continue</p>
         </div>
         <div class="role-buttons">
@@ -299,12 +299,46 @@
                         <th>Query</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th style="text-align:center;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="reportStatusBody">
                     <!-- populated by JS -->
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── View Report Modal (Lab Admin) ── -->
+<div id="viewReportModal" class="login-modal-overlay" style="display:none; z-index: 10000;">
+    <div class="status-modal-card" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <div class="status-header">
+            <h2>Report Preview</h2>
+            <button class="close-btn" onclick="closeViewReport()">&times;</button>
+        </div>
+        <div style="margin-top: 20px;">
+            <div class="detail-section">
+                <h4>User Query</h4>
+                <p id="viewReportQuery" class="detail-text"></p>
+            </div>
+            <div class="detail-section">
+                <h4>AI Explanation</h4>
+                <p id="viewReportSummary" class="detail-text" style="background:#eef2ff; border-color:#c7d2fe; color:#312e81;"></p>
+            </div>
+            <div class="detail-section">
+                <h4>Generated SQL</h4>
+                <pre id="viewReportSql" class="ai-sql-pre"></pre>
+            </div>
+            <div class="detail-section">
+                <h4>Data Snapshot</h4>
+                <div class="table-scroll-wrapper" style="max-height: 300px;">
+                    <table class="lims-table">
+                        <thead id="viewReportDataHead"></thead>
+                        <tbody id="viewReportDataBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -855,16 +855,19 @@ function closeReportStatus() {
 
 async function fetchReportStatus() {
     const tbody = document.getElementById('reportStatusBody');
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
     
     try {
         const resp = await fetch('/api/reviews');
         if (resp.ok) {
             const data = await resp.json();
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #64748b;">No reports found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: #64748b;">No reports found.</td></tr>';
                 return;
             }
+            
+            // Store reports globally so we can access them when clicking View
+            window._allReports = data;
             
             tbody.innerHTML = data.map(r => `
                 <tr>
@@ -872,12 +875,62 @@ async function fetchReportStatus() {
                     <td title="${r.userQuery}" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.userQuery}</td>
                     <td>${new Date(r.createdAt).toLocaleDateString()}</td>
                     <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
+                    <td style="text-align:center;">
+                        <button class="secondary-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="openViewReport(${r.id})">View Report</button>
+                    </td>
                 </tr>
             `).join('');
         }
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: red;">Error loading status.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: red;">Error loading status.</td></tr>';
     }
+}
+
+function openViewReport(id) {
+    const report = window._allReports.find(r => r.id === id);
+    if (!report) return;
+    
+    document.getElementById('viewReportQuery').innerText = report.userQuery;
+    document.getElementById('viewReportSummary').innerText = report.summary || 'No explanation available.';
+    document.getElementById('viewReportSql').innerText = report.generatedSql;
+    
+    const thead = document.getElementById('viewReportDataHead');
+    const tbody = document.getElementById('viewReportDataBody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    let results = [];
+    try {
+        results = JSON.parse(report.resultData);
+    } catch (e) {}
+    
+    if (results && results.length > 0) {
+        const cols = Object.keys(results[0]);
+        thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+        
+        results.slice(0, 50).forEach(row => {
+            const tr = document.createElement('tr');
+            cols.forEach(c => {
+                const td = document.createElement('td');
+                td.innerText = row[c] !== null && row[c] !== undefined ? row[c] : '';
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        if (results.length > 50) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="${cols.length}" style="text-align:center; font-style:italic; color:#64748b;">Showing first 50 rows of snapshot</td>`;
+            tbody.appendChild(tr);
+        }
+    } else {
+        tbody.innerHTML = '<tr><td style="text-align:center;">No data in snapshot.</td></tr>';
+    }
+    
+    document.getElementById('viewReportModal').style.display = 'flex';
+}
+
+function closeViewReport() {
+    document.getElementById('viewReportModal').style.display = 'none';
 }
 
 // Lims Admin Functions
