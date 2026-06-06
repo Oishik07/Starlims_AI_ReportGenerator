@@ -55,6 +55,7 @@ body {
         0 12px 48px rgba(15, 75, 143, 0.10);
     border-top: 3px solid var(--sl-blue);
     animation: fadeUp 0.5s ease-out;
+    transition: opacity 0.3s ease;
     /* Safe zone at bottom so FAB doesn't collide with content */
     padding-bottom: 5.5rem;
 }
@@ -1363,7 +1364,8 @@ textarea:focus {
 .lims-admin-body {
     display: flex;
     gap: 1.5rem;
-    height: calc(100vh - 120px);
+    min-height: 600px;
+    height: auto;
     min-width: 0;
 }
 
@@ -1375,6 +1377,7 @@ textarea:focus {
     border: 1px solid var(--border-soft);
     padding: 1.5rem;
     overflow-y: auto;
+    max-height: 800px;
     min-width: 0;
 }
 

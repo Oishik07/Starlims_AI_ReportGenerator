@@ -14,36 +14,62 @@ let currentSelectedReviewId = null;
 
 function loginAs(role) {
     currentUserRole = role;
-    document.getElementById('loginModal').style.display = 'none';
-    
-    document.getElementById('currentUserDisplay').innerText = role;
-    document.getElementById('headerActions').style.display = 'flex';
-    
-    if (role === 'Lab Admin') {
-        document.querySelector('.main-col').style.display = 'block';
-        document.getElementById('limsAdminBody').style.display = 'none';
-        document.getElementById('reportStatusBtn').style.display = 'block';
-    } else if (role === 'Lims Admin') {
-        document.querySelector('.main-col').style.display = 'none';
-        document.getElementById('aiPanel').style.display = 'none';
-        document.getElementById('limsAdminBody').style.display = 'flex';
-        document.getElementById('reportStatusBtn').style.display = 'none';
-        fetchPendingReviews();
-    }
+    const loginModal = document.getElementById('loginModal');
+    loginModal.style.opacity = '0';
+    setTimeout(() => {
+        loginModal.style.display = 'none';
+        loginModal.style.opacity = '1';
+        
+        document.getElementById('currentUserDisplay').innerText = role;
+        document.getElementById('headerActions').style.display = 'flex';
+        
+        // Fade in main app wrapper
+        const wrapper = document.querySelector('.app-wrapper');
+        wrapper.style.animation = 'none';
+        wrapper.offsetHeight; // trigger reflow
+        wrapper.style.animation = 'fadeUp 0.5s ease-out';
+        
+        if (role === 'Lab Admin') {
+            document.querySelector('.main-col').style.display = 'block';
+            document.getElementById('limsAdminBody').style.display = 'none';
+            document.getElementById('reportStatusBtn').style.display = 'block';
+            document.getElementById('chatFabBtn').style.display = 'inline-flex';
+        } else if (role === 'Lims Admin') {
+            document.querySelector('.main-col').style.display = 'none';
+            const rightCol = document.getElementById('rightCol');
+            if(rightCol) rightCol.style.display = 'none';
+            document.getElementById('limsAdminBody').style.display = 'flex';
+            document.getElementById('reportStatusBtn').style.display = 'none';
+            document.getElementById('chatFabBtn').style.display = 'none';
+            fetchPendingReviews();
+        }
+    }, 300);
 }
 
 function logout() {
     currentUserRole = null;
-    document.getElementById('loginModal').style.display = 'flex';
-    document.getElementById('headerActions').style.display = 'none';
-    
-    // Reset UI
-    document.getElementById('promptInput').value = '';
-    document.getElementById('statusMessage').style.display = 'none';
-    document.getElementById('dataGrid').style.display = 'none';
-    document.getElementById('dashboardSection').style.display = 'none';
-    document.getElementById('resultsHeader').style.display = 'none';
-    document.getElementById('aiPanel').style.display = 'none';
+    const wrapper = document.querySelector('.app-wrapper');
+    wrapper.style.opacity = '0';
+    setTimeout(() => {
+        wrapper.style.opacity = '1';
+        
+        const loginModal = document.getElementById('loginModal');
+        loginModal.style.display = 'flex';
+        loginModal.style.animation = 'none';
+        loginModal.offsetHeight; // trigger reflow
+        loginModal.style.animation = 'fadeIn 0.3s ease';
+        
+        document.getElementById('headerActions').style.display = 'none';
+        
+        // Reset UI
+        document.getElementById('promptInput').value = '';
+        document.getElementById('statusMessage').style.display = 'none';
+        document.getElementById('dataGrid').style.display = 'none';
+        document.getElementById('dashboardSection').style.display = 'none';
+        document.getElementById('resultsHeader').style.display = 'none';
+        const rightCol = document.getElementById('rightCol');
+        if(rightCol) rightCol.style.display = 'none';
+    }, 300);
 }
 
 const REASONING_STEPS = [
@@ -256,7 +282,7 @@ async function generateReport() {
         console.error('Error:', err);
         showStatus(`Error: ${err.message}`, 'error');
         stopProcessingUI();
-        const panel = document.getElementById('aiPanel');
+        const panel = document.getElementById('rightCol');
         if (panel) panel.style.display = 'none';
     } finally {
         btn.disabled          = false;
@@ -293,7 +319,7 @@ function startProcessingUI() {
     overlay.classList.add('active');
 
     // Build sidebar steps
-    const aiPanel   = document.getElementById('aiPanel');
+    const aiPanel   = document.getElementById('rightCol');
     const reasonSec = document.getElementById('reasoningSection');
     const resultSec = document.getElementById('resultsSection');
     const sList     = document.getElementById('reasoningList');
@@ -355,7 +381,10 @@ function populateAiPanel(sql, summary, confidence, reason, latency, modelName) {
     if (reviewSec) {
         if (currentUserRole === 'Lab Admin') {
             reviewSec.style.display = 'flex';
-            document.getElementById('sendReviewBtn').style.display = 'flex';
+            const btn = document.getElementById('sendReviewBtn');
+            btn.style.display = 'flex';
+            btn.disabled = false;
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg><span>Send for review</span>`;
             document.getElementById('reviewSuccessMsg').style.display = 'none';
         } else {
             reviewSec.style.display = 'none';

@@ -16,7 +16,7 @@
     <div class="login-modal-card">
         <!-- Left Side: Image -->
         <div class="login-image-side">
-            <img src="login-bg.png" alt="Starlims Lab Analytics">
+            <img src="login-bg-2.png" alt="Starlims Lab Analytics">
         </div>
         <!-- Right Side: Content -->
         <div class="login-content-side">
@@ -85,8 +85,8 @@
         
         <div class="header-actions" id="headerActions" style="display:none;">
             <span id="currentUserDisplay" class="current-user-badge">Role</span>
-            <button id="reportStatusBtn" class="secondary-btn" onclick="openReportStatus()" style="display:none;">Report Status</button>
-            <button id="logoutBtn" class="secondary-btn" onclick="logout()">Logout</button>
+            <button id="reportStatusBtn" class="secondary-btn" onclick="openReportStatus()" style="display:none; border: 1px solid var(--red); color: var(--red);">Report Status</button>
+            <button id="logoutBtn" class="secondary-btn" onclick="logout()" style="border: 1px solid var(--red); color: var(--red);">Logout</button>
         </div>
     </header>
 
@@ -148,8 +148,22 @@
             </div>
         </div>
 
-        <!-- RIGHT: AI Insights Panel -->
-        <aside class="ai-panel" id="aiPanel" style="display:none;">
+        <!-- RIGHT: Actions and Insights -->
+        <div id="rightCol" style="display:none; flex-direction:column; gap:15px; width:280px; flex-shrink:0;">
+            <!-- Review Action -->
+            <div class="review-action-section" id="reviewActionSection" style="display:none; background:var(--surface); border-radius:14px; box-shadow:0 4px 24px rgba(15,75,143,0.08); padding:1rem;">
+                <button id="sendReviewBtn" class="primary-btn review-btn" onclick="sendForReview()" style="width:100%; justify-content:center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    <span>Send for review</span>
+                </button>
+                <div id="reviewSuccessMsg" class="review-success" style="display:none; justify-content:center; align-items:center; gap:8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Sent for review
+                </div>
+            </div>
+
+            <!-- AI Insights Panel -->
+            <aside class="ai-panel" id="aiPanel" style="width:100%;">
 
             <div class="ai-panel-header">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -169,18 +183,6 @@
 
             <!-- Results (shown after load) -->
             <div id="resultsSection" style="display:none;">
-
-                <!-- Review Action -->
-                <div class="ai-section review-action-section" id="reviewActionSection" style="display:none;">
-                    <button id="sendReviewBtn" class="primary-btn review-btn" onclick="sendForReview()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        <span>Send for review</span>
-                    </button>
-                    <div id="reviewSuccessMsg" class="review-success" style="display:none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        Sent for review
-                    </div>
-                </div>
 
                 <!-- Summary -->
                 <div class="ai-section">
@@ -239,6 +241,7 @@
             </div><!-- /resultsSection -->
 
         </aside>
+        </div><!-- /rightCol -->
 
     </div><!-- /page-body -->
 
