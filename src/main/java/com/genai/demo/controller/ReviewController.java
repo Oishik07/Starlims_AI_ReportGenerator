@@ -57,11 +57,27 @@ public class ReviewController {
         try {
             return repository.findById(id).map(review -> {
                 review.setStatus(ReportStatus.APPROVED);
+                review.setUpdatedAt(LocalDateTime.now());
                 repository.save(review);
                 return ResponseEntity.ok(Map.of("message", "Report approved successfully"));
             }).orElse(ResponseEntity.status(404).body(Map.of("error", "Review not found")));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", "Failed to approve review"));
+        }
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<?> rejectReview(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        try {
+            return repository.findById(id).map(review -> {
+                review.setStatus(ReportStatus.REJECTED);
+                review.setUpdatedAt(LocalDateTime.now());
+                review.setRejectionReason(payload.get("reason"));
+                repository.save(review);
+                return ResponseEntity.ok(Map.of("message", "Report rejected successfully"));
+            }).orElse(ResponseEntity.status(404).body(Map.of("error", "Review not found")));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to reject review"));
         }
     }
 }

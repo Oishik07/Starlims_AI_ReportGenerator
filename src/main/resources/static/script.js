@@ -1257,3 +1257,60 @@ async function approveCurrentReview() {
     }
 }
 
+function openRejectDialog() {
+    if (!currentSelectedReviewId) return;
+    document.getElementById('rejectReasonInput').value = '';
+    document.getElementById('rejectModal').style.display = 'flex';
+}
+
+function closeRejectDialog() {
+    document.getElementById('rejectModal').style.display = 'none';
+}
+
+async function submitRejectReview() {
+    if (!currentSelectedReviewId) return;
+    
+    const reason = document.getElementById('rejectReasonInput').value.trim();
+    if (!reason) {
+        alert('Please provide a reason for rejection.');
+        return;
+    }
+    
+    const btn = document.querySelector('#rejectModal .primary-btn');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Submitting...';
+    
+    try {
+        const resp = await fetch(`/api/reviews/${currentSelectedReviewId}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: reason })
+        });
+        
+        if (resp.ok) {
+            closeRejectDialog();
+            
+            // Remove from list
+            const item = document.getElementById(`review-item-${currentSelectedReviewId}`);
+            if (item) item.remove();
+            
+            document.getElementById('emptyDetailPanel').style.display = 'flex';
+            document.getElementById('reviewDetailPanel').style.display = 'none';
+            
+            // Check if queue empty
+            const list = document.getElementById('pendingReviewsList');
+            if (list.children.length === 0) {
+                list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
+            }
+        } else {
+            throw new Error('Rejection failed');
+        }
+    } catch (e) {
+        alert('Error rejecting report: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+}
+

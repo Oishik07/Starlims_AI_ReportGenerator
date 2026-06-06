@@ -36,4 +36,10 @@ public class ReportReview {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    @Column
+    private LocalDateTime updatedAt;
 }
