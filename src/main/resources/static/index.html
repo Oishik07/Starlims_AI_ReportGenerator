@@ -11,6 +11,28 @@
 </head>
 <body>
 
+<!-- ── Login / Role Selection Modal ── -->
+<div id="loginModal" class="login-modal-overlay">
+    <div class="login-modal-card">
+        <div class="login-header">
+            <img src="logo.png" alt="STARLIMS" class="login-logo" onerror="this.style.display='none'; document.getElementById('altLoginLogo').style.display='block';">
+            <h1 id="altLoginLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:24px; display:none;">STARLIMS</h1>
+            <h2>Welcome Back</h2>
+            <p>Select your role to continue</p>
+        </div>
+        <div class="role-buttons">
+            <button onclick="loginAs('Lab Admin')" class="role-btn lab-admin-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Lab Admin
+            </button>
+            <button onclick="loginAs('Lims Admin')" class="role-btn lims-admin-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Lims Admin
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ── Siri/Gemini border glow (shown during processing) ── -->
 <div class="border-glow" id="borderGlow">
     <div class="glow-bar glow-top"></div>
@@ -46,11 +68,19 @@
 
     <!-- Header -->
     <header class="app-header">
-        <img src="logo.png" alt="STARLIMS" class="brand-logo" id="starlimsLogo"
-             onerror="this.style.display='none'; document.getElementById('altLogo').style.display='block';">
-        <h1 id="altLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:22px; display:none;">STARLIMS</h1>
-        <div class="divider"></div>
-        <h2 class="app-title">AI REPORT GENERATOR</h2>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <img src="logo.png" alt="STARLIMS" class="brand-logo" id="starlimsLogo"
+                 onerror="this.style.display='none'; document.getElementById('altLogo').style.display='block';">
+            <h1 id="altLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:22px; display:none;">STARLIMS</h1>
+            <div class="divider"></div>
+            <h2 class="app-title">AI REPORT GENERATOR</h2>
+        </div>
+        
+        <div class="header-actions" id="headerActions" style="display:none;">
+            <span id="currentUserDisplay" class="current-user-badge">Role</span>
+            <button id="reportStatusBtn" class="secondary-btn" onclick="openReportStatus()" style="display:none;">Report Status</button>
+            <button id="logoutBtn" class="secondary-btn" onclick="logout()">Logout</button>
+        </div>
     </header>
 
     <!-- Two-column body -->
@@ -133,6 +163,18 @@
             <!-- Results (shown after load) -->
             <div id="resultsSection" style="display:none;">
 
+                <!-- Review Action -->
+                <div class="ai-section review-action-section" id="reviewActionSection" style="display:none;">
+                    <button id="sendReviewBtn" class="primary-btn review-btn" onclick="sendForReview()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        <span>Send for review</span>
+                    </button>
+                    <div id="reviewSuccessMsg" class="review-success" style="display:none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Sent for review
+                    </div>
+                </div>
+
                 <!-- Summary -->
                 <div class="ai-section">
                     <span class="ai-label">
@@ -193,7 +235,79 @@
 
     </div><!-- /page-body -->
 
+    <!-- LIMS ADMIN VIEW -->
+    <div id="limsAdminBody" class="page-body lims-admin-body" style="display:none;">
+        <div class="lims-queue-col">
+            <h2 style="margin-bottom: 20px; color: #0f4b8f;">Pending Reviews</h2>
+            <div id="pendingReviewsList" class="reviews-list">
+                <!-- populated by JS -->
+            </div>
+        </div>
+        
+        <div class="lims-detail-col">
+            <div id="reviewDetailPanel" class="review-detail-panel" style="display:none;">
+                <div class="detail-header">
+                    <h3>Review Details</h3>
+                    <span id="detailStatusBadge" class="status-badge pending">PENDING</span>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>User Query</h4>
+                    <p id="detailUserQuery" class="detail-text"></p>
+                </div>
+                
+                <div class="detail-section">
+                    <h4>Generated SQL</h4>
+                    <pre id="detailSql" class="ai-sql-pre"></pre>
+                </div>
+                
+                <div class="detail-section" style="flex: 1; display:flex; flex-direction:column; min-height: 300px;">
+                    <h4>Result Snapshot</h4>
+                    <div class="table-scroll-wrapper" style="flex:1;">
+                        <table class="lims-table">
+                            <thead id="detailDataHead"></thead>
+                            <tbody id="detailDataBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="detail-actions">
+                    <button id="approveBtn" class="primary-btn approve-btn" onclick="approveCurrentReview()">Approve Report</button>
+                </div>
+            </div>
+            
+            <div id="emptyDetailPanel" class="empty-detail-panel">
+                <p>Select a report from the queue to review.</p>
+            </div>
+        </div>
+    </div><!-- /lims-admin-body -->
+
 </div><!-- /app-wrapper -->
+
+<!-- ── Report Status Modal ── -->
+<div id="reportStatusModal" class="login-modal-overlay" style="display:none;">
+    <div class="status-modal-card">
+        <div class="status-header">
+            <h2>My Reports</h2>
+            <button class="close-btn" onclick="closeReportStatus()">&times;</button>
+        </div>
+        <div class="table-scroll-wrapper" style="max-height: 400px; margin-top: 20px;">
+            <table class="lims-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Query</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="reportStatusBody">
+                    <!-- populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <a href="chat.html" class="chat-fab-btn" id="chatFabBtn" title="Open AI Chat">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>

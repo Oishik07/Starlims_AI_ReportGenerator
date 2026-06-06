@@ -3,9 +3,48 @@ let currentGeneratedSql = "";
 let currentSummary = "";
 let currentConfidence = "";
 let currentReason = "";
+let currentOriginalQuery = ""; // Store the exact query typed by user
 let currentPage = 1;
 let globalTotalCount = 0;
 const PAGE_SIZE = 10;
+
+// --- Role Management State ---
+let currentUserRole = null;
+let currentSelectedReviewId = null;
+
+function loginAs(role) {
+    currentUserRole = role;
+    document.getElementById('loginModal').style.display = 'none';
+    
+    document.getElementById('currentUserDisplay').innerText = role;
+    document.getElementById('headerActions').style.display = 'flex';
+    
+    if (role === 'Lab Admin') {
+        document.querySelector('.main-col').style.display = 'block';
+        document.getElementById('limsAdminBody').style.display = 'none';
+        document.getElementById('reportStatusBtn').style.display = 'block';
+    } else if (role === 'Lims Admin') {
+        document.querySelector('.main-col').style.display = 'none';
+        document.getElementById('aiPanel').style.display = 'none';
+        document.getElementById('limsAdminBody').style.display = 'flex';
+        document.getElementById('reportStatusBtn').style.display = 'none';
+        fetchPendingReviews();
+    }
+}
+
+function logout() {
+    currentUserRole = null;
+    document.getElementById('loginModal').style.display = 'flex';
+    document.getElementById('headerActions').style.display = 'none';
+    
+    // Reset UI
+    document.getElementById('promptInput').value = '';
+    document.getElementById('statusMessage').style.display = 'none';
+    document.getElementById('dataGrid').style.display = 'none';
+    document.getElementById('dashboardSection').style.display = 'none';
+    document.getElementById('resultsHeader').style.display = 'none';
+    document.getElementById('aiPanel').style.display = 'none';
+}
 
 const REASONING_STEPS = [
     'Understanding your request',
@@ -142,6 +181,7 @@ async function generateReport() {
         currentSummary = step1.summary;
         currentConfidence = step1.confidence;
         currentReason = step1.reason;
+        currentOriginalQuery = promptValue;
         currentPage = 1;
 
         // Fetch total count
@@ -309,6 +349,18 @@ function populateAiPanel(sql, summary, confidence, reason, latency, modelName) {
         badgeEl.innerHTML = `<span class="conf-badge ${level}">${map[level] || '🟡 Medium Confidence'}</span>`;
     }
     if (reasonEl) reasonEl.innerText = reason || '';
+
+    // Show/hide review button based on role
+    const reviewSec = document.getElementById('reviewActionSection');
+    if (reviewSec) {
+        if (currentUserRole === 'Lab Admin') {
+            reviewSec.style.display = 'flex';
+            document.getElementById('sendReviewBtn').style.display = 'flex';
+            document.getElementById('reviewSuccessMsg').style.display = 'none';
+        } else {
+            reviewSec.style.display = 'none';
+        }
+    }
 
     if (resultSec) resultSec.style.display = 'block';
 }
@@ -749,3 +801,205 @@ function filterCharts(filterType) {
         }
     });
 }
+
+// ==========================================
+// REVIEW WORKFLOW FUNCTIONS
+// ==========================================
+
+async function sendForReview() {
+    if (!currentGeneratedSql || !globalReportData) {
+        showStatus('No report data available to send for review.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('sendReviewBtn');
+    const successMsg = document.getElementById('reviewSuccessMsg');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner-ring" style="width:16px;height:16px;display:inline-block;margin-right:8px;"></div> Sending...';
+
+    try {
+        const resp = await fetch('/api/reviews', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userQuery: currentOriginalQuery || document.getElementById('promptInput').value.trim(),
+                sql: currentGeneratedSql,
+                summary: currentSummary,
+                resultData: JSON.stringify(globalReportData)
+            })
+        });
+
+        if (resp.ok) {
+            btn.style.display = 'none';
+            successMsg.style.display = 'flex';
+        } else {
+            throw new Error('Failed to send report for review.');
+        }
+    } catch (e) {
+        console.error(e);
+        showStatus(e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg><span>Send for review</span>`;
+    }
+}
+
+function openReportStatus() {
+    document.getElementById('reportStatusModal').style.display = 'flex';
+    fetchReportStatus();
+}
+
+function closeReportStatus() {
+    document.getElementById('reportStatusModal').style.display = 'none';
+}
+
+async function fetchReportStatus() {
+    const tbody = document.getElementById('reportStatusBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+    
+    try {
+        const resp = await fetch('/api/reviews');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: #64748b;">No reports found.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.map(r => `
+                <tr>
+                    <td>#${r.id}</td>
+                    <td title="${r.userQuery}" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.userQuery}</td>
+                    <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
+                </tr>
+            `).join('');
+        }
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color: red;">Error loading status.</td></tr>';
+    }
+}
+
+// Lims Admin Functions
+async function fetchPendingReviews() {
+    const list = document.getElementById('pendingReviewsList');
+    list.innerHTML = '<p style="color: #64748b; text-align: center;">Loading queue...</p>';
+    document.getElementById('emptyDetailPanel').style.display = 'flex';
+    document.getElementById('reviewDetailPanel').style.display = 'none';
+    currentSelectedReviewId = null;
+
+    try {
+        const resp = await fetch('/api/reviews?status=PENDING');
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.length === 0) {
+                list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
+                return;
+            }
+            
+            list.innerHTML = data.map(r => `
+                <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
+                    <div class="review-item-header">
+                        <span class="review-item-title">Report #${r.id}</span>
+                        <span class="review-item-date">${new Date(r.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="review-item-query">${r.userQuery}</div>
+                    <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        list.innerHTML = '<p style="color: red;">Error loading reviews.</p>';
+    }
+}
+
+function selectReview(id) {
+    // UI selection
+    document.querySelectorAll('.review-item').forEach(el => el.classList.remove('active'));
+    document.getElementById(`review-item-${id}`).classList.add('active');
+    
+    currentSelectedReviewId = id;
+    
+    // Get data
+    const dataEl = document.getElementById(`review-data-${id}`);
+    const query = decodeURIComponent(dataEl.getAttribute('data-query'));
+    const sql = decodeURIComponent(dataEl.getAttribute('data-sql'));
+    let results = [];
+    try {
+        results = JSON.parse(decodeURIComponent(dataEl.getAttribute('data-results')));
+    } catch (e) { console.error("Failed to parse results JSON", e); }
+    
+    // Populate details
+    document.getElementById('detailUserQuery').innerText = query;
+    document.getElementById('detailSql').innerText = sql;
+    
+    // Render mini table
+    const thead = document.getElementById('detailDataHead');
+    const tbody = document.getElementById('detailDataBody');
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    if (results && results.length > 0) {
+        const cols = Object.keys(results[0]);
+        thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+        
+        results.slice(0, 50).forEach(row => {
+            const tr = document.createElement('tr');
+            cols.forEach(c => {
+                const td = document.createElement('td');
+                td.innerText = row[c] !== null && row[c] !== undefined ? row[c] : '';
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        if (results.length > 50) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="${cols.length}" style="text-align:center; font-style:italic; color:#64748b;">Showing first 50 rows of snapshot</td>`;
+            tbody.appendChild(tr);
+        }
+    } else {
+        tbody.innerHTML = '<tr><td style="text-align:center;">No data in snapshot.</td></tr>';
+    }
+    
+    // Switch panels
+    document.getElementById('emptyDetailPanel').style.display = 'none';
+    document.getElementById('reviewDetailPanel').style.display = 'flex';
+}
+
+async function approveCurrentReview() {
+    if (!currentSelectedReviewId) return;
+    
+    const btn = document.getElementById('approveBtn');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Approving...';
+    
+    try {
+        const resp = await fetch(`/api/reviews/${currentSelectedReviewId}/approve`, {
+            method: 'POST'
+        });
+        
+        if (resp.ok) {
+            // Remove from list
+            const item = document.getElementById(`review-item-${currentSelectedReviewId}`);
+            if (item) item.remove();
+            
+            document.getElementById('emptyDetailPanel').style.display = 'flex';
+            document.getElementById('reviewDetailPanel').style.display = 'none';
+            
+            // Check if queue empty
+            const list = document.getElementById('pendingReviewsList');
+            if (list.children.length === 0) {
+                list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
+            }
+        } else {
+            throw new Error('Approval failed');
+        }
+    } catch (e) {
+        alert('Error approving report: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+}
+
