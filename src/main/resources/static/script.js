@@ -107,6 +107,9 @@ function resetToGenerate() {
     document.getElementById('newReportBtnContainer').style.display = 'none';
     document.getElementById('askAiContainer').style.display = 'block';
     
+    const vrDetails = document.getElementById('viewReportDetails');
+    if(vrDetails) vrDetails.style.display = 'none';
+    
     document.getElementById('promptInput').value = '';
     document.getElementById('statusMessage').style.display = 'none';
     document.getElementById('dataGrid').style.display = 'none';
@@ -429,12 +432,14 @@ function populateAiPanel(sql, summary, confidence, reason, latency, modelName) {
     const reviewSec = document.getElementById('reviewActionSection');
     if (reviewSec) {
         if (currentUserRole === 'Lab Admin') {
-            reviewSec.style.display = 'flex';
+            reviewSec.style.display = 'block';
             const btn = document.getElementById('sendReviewBtn');
             btn.style.display = 'flex';
             btn.disabled = false;
             btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg><span>Send for review</span>`;
             document.getElementById('reviewSuccessMsg').style.display = 'none';
+            const vStatus = document.getElementById('viewReportStatus');
+            if(vStatus) vStatus.style.display = 'none';
         } else {
             reviewSec.style.display = 'none';
         }
@@ -993,6 +998,12 @@ async function openViewReport(id) {
     currentOriginalQuery = report.userQuery;
     currentPage = 1;
     
+    // Show original query
+    const vrDetails = document.getElementById('viewReportDetails');
+    if(vrDetails) vrDetails.style.display = 'block';
+    const vrQuery = document.getElementById('viewReportOriginalQuery');
+    if(vrQuery) vrQuery.innerText = currentOriginalQuery;
+    
     // Start processing UI to show we are loading
     startProcessingUI();
     const startTime = Date.now();
@@ -1072,6 +1083,28 @@ async function openViewReport(id) {
             latency,
             "Cached Report"
         );
+
+        // Update Review Section for View Mode
+        const reviewSec = document.getElementById('reviewActionSection');
+        if (reviewSec) {
+            reviewSec.style.display = 'block';
+            const btn = document.getElementById('sendReviewBtn');
+            if (btn) btn.style.display = 'none';
+            const succMsg = document.getElementById('reviewSuccessMsg');
+            if (succMsg) succMsg.style.display = 'none';
+            
+            const statusDiv = document.getElementById('viewReportStatus');
+            if (statusDiv) {
+                statusDiv.style.display = 'flex';
+                const badge = document.getElementById('viewReportBadge');
+                if (badge) {
+                    badge.className = `status-badge ${report.status.toLowerCase()}`;
+                    badge.innerText = report.status;
+                }
+                const dateEl = document.getElementById('viewReportDate');
+                if (dateEl) dateEl.innerText = new Date(report.createdAt).toLocaleDateString();
+            }
+        }
 
         // Process data array and pagination
         const parsedData = Array.isArray(result.data) ? result.data : [];

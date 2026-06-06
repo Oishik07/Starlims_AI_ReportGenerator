@@ -1582,3 +1582,74 @@ textarea:focus {
     box-shadow: 0 4px 6px rgba(15, 75, 143, 0.1);
 }
 
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+    .login-modal-card {
+        flex-direction: column;
+        width: 95%;
+        height: auto;
+        min-height: 500px;
+        border-radius: 12px;
+        overflow: auto;
+    }
+    .login-image-side {
+        width: 100%;
+        height: 180px;
+        flex: none;
+    }
+    .login-content-side {
+        padding: 1.5rem;
+    }
+    .app-wrapper {
+        padding: 1.5rem 1rem;
+    }
+    .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .app-header > div:first-child {
+        flex-wrap: wrap;
+    }
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    .page-body {
+        flex-direction: column;
+    }
+    .lims-admin-body {
+        flex-direction: column;
+    }
+    .lims-queue-col {
+        max-height: 400px;
+    }
+    #rightCol {
+        width: 100% !important;
+    }
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .lims-table th, .lims-table td {
+        padding: 0.75rem;
+    }
+    .role-buttons {
+        flex-direction: column;
+    }
+}
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    .button-row {
+        flex-direction: column;
+    }
+    .button-row .primary-btn, .button-row .secondary-btn {
+        width: 100%;
+    }
+}
+
