@@ -1436,6 +1436,8 @@ function openSampleCreation() {
     if (ch) ch.style.display = 'none';
     const chatFab = document.getElementById('chatFabBtn');
     if (chatFab) chatFab.style.display = 'none';
+    const successMsg = document.getElementById('saveSuccessMsg');
+    if (successMsg) successMsg.style.display = 'none';
     document.getElementById('sampleCreationSection').style.display = 'block';
 }
 
@@ -1542,19 +1544,31 @@ async function extractSampleDataFromText(speechText) {
     const statusText = document.getElementById('micStatusText');
     statusText.innerHTML = '<div class="spinner-ring" style="width:14px;height:14px;border-color:rgba(15,75,143,0.3);border-top-color:var(--sl-blue);display:inline-block;vertical-align:middle;margin-right:6px;"></div> Extracting fields via AI...';
 
-    try {
-        const promptText = "You are an AI data extraction tool. Extract the sample fields from the user's speech.\nThe form has these fields: inventoryId (mandatory), materialName (mandatory), materialCode, supplierCode, catalog, supplierName, amountLeft, concentration, owner, manufacturer, lot, expiry.\nAlso capture any other additional fields mentioned as a single summarized string in 'additionalInfo'.\nReturn ONLY a valid JSON object (no markdown, no backticks) with this structure:\n{\n  \"fields\": { \"inventoryId\": \"...\", \"materialName\": \"...\", \"additionalInfo\": \"...\" },\n  \"missingMandatory\": [\"list of missing mandatory fields\"],\n  \"messageToSpeak\": \"A short, natural sentence asking the user to provide the missing mandatory fields, or empty string if none are missing.\"\n}\nUser Speech: \"" + speechText + "\"";
+    const micWrapper = document.getElementById('micIconWrapper');
+    const originalMicHTML = micWrapper ? micWrapper.innerHTML : '';
+    if (micWrapper) {
+        micWrapper.innerHTML = `
+            <style>
+                @keyframes pulseAi { 0%, 100% { transform: scale(0.8); opacity: 0.6; } 50% { transform: scale(1.2); opacity: 1; } }
+            </style>
+            <div style="display:flex; gap:4px; align-items:center;">
+                <div style="width:8px;height:8px;background:#00c6ff;border-radius:50%;animation:pulseAi 1.5s infinite;animation-delay:0s;box-shadow:0 0 8px #00c6ff;"></div>
+                <div style="width:8px;height:8px;background:#fbc2eb;border-radius:50%;animation:pulseAi 1.5s infinite;animation-delay:0.3s;box-shadow:0 0 8px #fbc2eb;"></div>
+                <div style="width:8px;height:8px;background:#a18cd1;border-radius:50%;animation:pulseAi 1.5s infinite;animation-delay:0.6s;box-shadow:0 0 8px #a18cd1;"></div>
+            </div>
+        `;
+    }
 
-        const resp = await fetch('/ai/chat', {
+    try {
+        const resp = await fetch('/ai/extract', {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
-            body: promptText
+            body: speechText
         });
 
         if (!resp.ok) throw new Error('Failed to contact AI.');
 
         const textResp = await resp.text();
-        
         let jsonStr = textResp.trim();
         if (jsonStr.startsWith('```json')) {
             jsonStr = jsonStr.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -1563,26 +1577,28 @@ async function extractSampleDataFromText(speechText) {
         }
 
         const data = JSON.parse(jsonStr);
+        const fields = data.fields || data;
 
-        if (data.inventoryId) document.getElementById('sf_inventoryId').value = data.inventoryId;
-        if (data.materialCode) document.getElementById('sf_materialCode').value = data.materialCode;
-        if (data.supplierCode) document.getElementById('sf_supplierCode').value = data.supplierCode;
-        if (data.catalog) document.getElementById('sf_catalog').value = data.catalog;
-        if (data.materialName) document.getElementById('sf_materialName').value = data.materialName;
-        if (data.supplierName) document.getElementById('sf_supplierName').value = data.supplierName;
-        if (data.amountLeft) document.getElementById('sf_amountLeft').value = data.amountLeft;
-        if (data.concentration) document.getElementById('sf_concentration').value = data.concentration;
-        if (data.owner) document.getElementById('sf_owner').value = data.owner;
-        if (data.manufacturer) document.getElementById('sf_manufacturer').value = data.manufacturer;
-        if (data.lot) document.getElementById('sf_lot').value = data.lot;
-        if (data.expiry) {
-            const d = new Date(data.expiry);
+        if (fields.inventoryId) document.getElementById('sf_inventoryId').value = fields.inventoryId;
+        if (fields.materialCode) document.getElementById('sf_materialCode').value = fields.materialCode;
+        if (fields.supplierCode) document.getElementById('sf_supplierCode').value = fields.supplierCode;
+        if (fields.catalog) document.getElementById('sf_catalog').value = fields.catalog;
+        if (fields.materialName) document.getElementById('sf_materialName').value = fields.materialName;
+        if (fields.supplierName) document.getElementById('sf_supplierName').value = fields.supplierName;
+        if (fields.amountLeft) document.getElementById('sf_amountLeft').value = fields.amountLeft;
+        if (fields.concentration) document.getElementById('sf_concentration').value = fields.concentration;
+        if (fields.owner) document.getElementById('sf_owner').value = fields.owner;
+        if (fields.manufacturer) document.getElementById('sf_manufacturer').value = fields.manufacturer;
+        if (fields.lot) document.getElementById('sf_lot').value = fields.lot;
+        if (fields.expiry) {
+            const d = new Date(fields.expiry);
             if (!isNaN(d.valueOf())) {
                 document.getElementById('sf_expiry').value = d.toISOString().split('T')[0];
             }
         }
 
         statusText.innerHTML = '<span style="color:var(--green)">✨ Success! Fields populated.</span>';
+        if (micWrapper) micWrapper.innerHTML = originalMicHTML;
         setTimeout(() => {
             statusText.innerText = "Click the mic to speak the sample details...";
         }, 3000);
@@ -1590,6 +1606,7 @@ async function extractSampleDataFromText(speechText) {
     } catch (e) {
         console.error('AI Extraction Error:', e);
         statusText.innerHTML = '<span style="color:var(--red)">Failed to extract data.</span>';
+        if (micWrapper) micWrapper.innerHTML = originalMicHTML;
         setTimeout(() => {
             statusText.innerText = "Click the mic to speak the sample details...";
         }, 3000);
@@ -1611,10 +1628,12 @@ function saveSample(e) {
     btn.innerHTML = 'Saving...';
     btn.disabled = true;
 
+    const successMsg = document.getElementById('saveSuccessMsg');
+    if (successMsg) successMsg.style.display = 'none';
+
     setTimeout(() => {
         btn.innerHTML = origText;
         btn.disabled = false;
-        alert('Sample saved successfully as draft!');
-        closeSampleCreation();
+        if (successMsg) successMsg.style.display = 'flex';
     }, 800);
 }

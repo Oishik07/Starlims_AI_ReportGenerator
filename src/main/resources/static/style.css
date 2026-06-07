@@ -164,13 +164,13 @@ textarea {
     width: 100%;
     /* Extra top padding to make room for the floating "ASK AI" label */
     box-sizing: border-box;
-    padding: 2.8rem 1.5rem 1rem 1.5rem;
+    padding: 2.2rem 1.25rem 0.85rem 1.25rem;
     font-family: 'Inter', sans-serif;
     font-size: 0.95rem;
     color: var(--text);
     border: 1px solid var(--border);
-    border-radius: 24px;
-    background: #ffffff;
+    border-radius: 16px;
+    background: #fdfdff;
     resize: none;
     outline: none;
     transition: all 0.25s ease;

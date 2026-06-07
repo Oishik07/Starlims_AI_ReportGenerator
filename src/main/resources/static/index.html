@@ -211,6 +211,10 @@
                             <button type="button" class="secondary-btn" onclick="closeSampleCreation()">Cancel</button>
                             <button type="submit" class="primary-btn no-icon">Save / Add</button>
                         </div>
+                        <div id="saveSuccessMsg" style="display:none; align-items:center; justify-content:center; gap:0.5rem; margin-top: 1.5rem; padding: 1rem; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; border-radius: 8px; font-weight: 500; animation: fadeUp 0.3s ease;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            Sample details successfully saved!
+                        </div>
                     </form>
                 </div>
             </div>
@@ -225,9 +229,9 @@
                 <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Original Query</div>
                 <div id="viewReportOriginalQuery" class="ai-body-text"></div>
             </div>
-            <div class="input-container" id="askAiContainer" style="padding: 1rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background: white;">
-                <textarea id="promptInput" placeholder="Describe what you need — e.g. Show samples processed after March 2026..." rows="1" style="min-height: 44px; height: 44px; padding: 0.6rem 1rem; font-size: 0.95rem; resize: none; overflow: hidden; border-radius: 8px; border: 1px solid #dfe1e6; width: 100%; background: #f8faff;"></textarea>
-                <div class="button-row" style="margin-top: 0.75rem;">
+            <div class="input-container" id="askAiContainer">
+                <textarea id="promptInput" placeholder="Describe what you need — e.g. Show samples processed after March 2026..." rows="2"></textarea>
+                <div class="button-row">
                     <button id="generateBtn" onclick="generateReport()" class="primary-btn">
                         <span id="btnText">Generate Report</span>
                         <div id="btnSpinner" class="spinner-ring" style="display:none;"></div>

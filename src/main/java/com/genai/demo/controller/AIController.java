@@ -3,6 +3,7 @@ package com.genai.demo.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.genai.demo.dto.PromptRequest;
 import com.genai.demo.dto.SampleDTO;
+import com.genai.demo.dto.SampleExtraction;
 import com.genai.demo.service.AIService;
 import com.genai.demo.service.ReportService;
 import com.genai.demo.tool.StarlimsTools;
@@ -62,6 +63,21 @@ public class AIController {
 
         return ResponseEntity.ok(resp);
 
+    }
+
+    @PostMapping("/extract")
+    public ResponseEntity<?> extractSampleData(@RequestBody String message) {
+        try {
+            SampleExtraction extracted = chatClient.prompt()
+                    .system("You are an AI data extraction tool. Extract the sample fields from the user's speech. The form has these fields: inventoryId, materialName, materialCode, supplierCode, catalog, supplierName, amountLeft, concentration, owner, manufacturer, lot, expiry. Capture any other additional fields mentioned as a single summarized string in 'additionalInfo'.")
+                    .user(message)
+                    .call()
+                    .entity(SampleExtraction.class);
+            
+            return ResponseEntity.ok(Map.of("fields", extracted));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Failed to extract data"));
+        }
     }
 
     @PostMapping("/generateReport")
