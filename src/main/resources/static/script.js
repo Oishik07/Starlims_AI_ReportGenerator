@@ -957,20 +957,28 @@ async function fetchReportStatus() {
             // Store reports globally so we can access them when clicking View
             window._allReports = data;
             
-            tbody.innerHTML = data.map(r => `
+            tbody.innerHTML = data.map(r => {
+                const userQuery = r.userQuery || r.user_query || "";
+                const createdAt = r.createdAt || r.created_at || "";
+                const status = r.status || "";
+                const updatedAt = r.updatedAt || r.updated_at || "";
+                const statusUpper = status.toUpperCase();
+                const statusLower = status.toLowerCase();
+                return `
                 <tr>
                     <td>#${r.id}</td>
-                    <td title="${r.userQuery}" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.userQuery}</td>
-                    <td>${new Date(r.createdAt).toLocaleDateString()}</td>
-                    <td>${r.status.toUpperCase() === 'PENDING' ? '-' : new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</td>
-                    <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
+                    <td title="${userQuery}" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${userQuery}</td>
+                    <td>${new Date(createdAt).toLocaleDateString()}</td>
+                    <td>${statusUpper === 'PENDING' ? '-' : new Date(updatedAt || createdAt).toLocaleDateString()}</td>
+                    <td><span class="status-badge ${statusLower}">${status}</span></td>
                     <td style="text-align:center;">
                         <button class="secondary-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="openViewReport(${r.id})">View Report</button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
     } catch (e) {
+        console.error("fetchReportStatus error:", e);
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Error loading status.</td></tr>';
     }
 }
@@ -1000,11 +1008,19 @@ async function openViewReport(id) {
     }
     
     // Set global variables
-    currentGeneratedSql = report.generatedSql;
-    currentSummary = report.summary || '';
+    const generatedSql = report.generatedSql || report.generated_sql || "";
+    const summary = report.summary || "";
+    const userQuery = report.userQuery || report.user_query || "";
+    const status = report.status || "";
+    const createdAt = report.createdAt || report.created_at || "";
+    const updatedAt = report.updatedAt || report.updated_at || "";
+    const rejectionReason = report.rejectionReason || report.rejection_reason || "";
+    
+    currentGeneratedSql = generatedSql;
+    currentSummary = summary;
     currentConfidence = "high";
     currentReason = "Loaded from history.";
-    currentOriginalQuery = report.userQuery;
+    currentOriginalQuery = userQuery;
     currentPage = 1;
     
     // Show original query
@@ -1107,19 +1123,19 @@ async function openViewReport(id) {
                 statusDiv.style.display = 'flex';
                 const badge = document.getElementById('viewReportBadge');
                 if (badge) {
-                    badge.className = `status-badge ${report.status.toLowerCase()}`;
-                    badge.innerText = report.status;
+                    badge.className = `status-badge ${status.toLowerCase()}`;
+                    badge.innerText = status;
                 }
                 const createdDateEl = document.getElementById('viewReportDate');
                 if (createdDateEl) {
-                    createdDateEl.innerText = new Date(report.createdAt).toLocaleDateString();
+                    createdDateEl.innerText = new Date(createdAt).toLocaleDateString();
                 }
                 // Set update date
                 const updateDateEl = document.getElementById('viewReportUpdateDate');
-                if (report.status.toUpperCase() !== 'PENDING') {
+                if (status.toUpperCase() !== 'PENDING') {
                     if (updateDateEl) {
                         updateDateEl.style.display = 'block';
-                        document.getElementById('viewReportUpdateDateValue').innerText = new Date(report.updatedAt || report.createdAt).toLocaleDateString();
+                        document.getElementById('viewReportUpdateDateValue').innerText = new Date(updatedAt || createdAt).toLocaleDateString();
                     }
                 } else {
                     if (updateDateEl) updateDateEl.style.display = 'none';
@@ -1127,12 +1143,12 @@ async function openViewReport(id) {
             }
         }
 
-        if (report.status.toUpperCase() === 'REJECTED') {
+        if (status.toUpperCase() === 'REJECTED') {
             document.querySelector('.app-wrapper').classList.add('rejected-theme');
             const rejectReasonEl = document.getElementById('viewReportRejectReason');
             if (rejectReasonEl) {
                 rejectReasonEl.style.display = 'block';
-                document.getElementById('viewReportRejectReasonValue').innerText = report.rejectionReason || 'No reason provided';
+                document.getElementById('viewReportRejectReasonValue').innerText = rejectionReason || 'No reason provided';
             }
         } else {
             document.querySelector('.app-wrapper').classList.remove('rejected-theme');
@@ -1182,48 +1198,63 @@ async function fetchPendingReviews() {
         const resp = await fetch('/api/reviews');
         if (resp.ok) {
             const data = await resp.json();
+            console.log("Lims Admin Reviews Data:", data); // Log to dev console
             window._limsReports = data;
             
-            const pendingData = data.filter(r => r.status.toUpperCase() === 'PENDING');
-            const completedData = data.filter(r => r.status.toUpperCase() !== 'PENDING');
+            const pendingData = data.filter(r => r.status && r.status.toUpperCase() === 'PENDING');
+            const completedData = data.filter(r => !r.status || r.status.toUpperCase() !== 'PENDING');
             
             if (pendingData.length === 0) {
                 list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
             } else {
-                list.innerHTML = pendingData.map(r => `
+                list.innerHTML = pendingData.map(r => {
+                    const userQuery = r.userQuery || r.user_query || "";
+                    const generatedSql = r.generatedSql || r.generated_sql || "";
+                    const resultData = r.resultData || r.result_data || "[]";
+                    const createdAt = r.createdAt || r.created_at || "";
+                    return `
                     <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
                         <div class="review-item-header">
                             <span class="review-item-title">Report #${r.id}</span>
-                            <span class="review-item-date">${new Date(r.createdAt).toLocaleDateString()}</span>
+                            <span class="review-item-date">${new Date(createdAt).toLocaleDateString()}</span>
                         </div>
-                        <div class="review-item-query">${r.userQuery}</div>
-                        <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
+                        <div class="review-item-query">${userQuery}</div>
+                        <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(generatedSql)}" data-query="${encodeURIComponent(userQuery)}" data-results="${encodeURIComponent(resultData)}"></div>
                     </div>
-                `).join('');
+                `}).join('');
             }
             
             if (compList) {
                 if (completedData.length === 0) {
                     compList.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No completed reviews.</div>';
                 } else {
-                    compList.innerHTML = completedData.map(r => `
+                    compList.innerHTML = completedData.map(r => {
+                        const userQuery = r.userQuery || r.user_query || "";
+                        const generatedSql = r.generatedSql || r.generated_sql || "";
+                        const resultData = r.resultData || r.result_data || "[]";
+                        const createdAt = r.createdAt || r.created_at || "";
+                        const updatedAt = r.updatedAt || r.updated_at || "";
+                        const status = r.status || "";
+                        const statusLower = status.toLowerCase();
+                        return `
                         <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
                             <div class="review-item-header">
                                 <span class="review-item-title">Report #${r.id}</span>
                             </div>
-                            <div class="review-item-query">${r.userQuery}</div>
+                            <div class="review-item-query">${userQuery}</div>
                             <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
-                                <div><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></div>
-                                <div style="font-size: 0.82rem; color: var(--text-muted);">Created on: ${new Date(r.createdAt).toLocaleDateString()}</div>
-                                <div style="font-size: 0.82rem; color: var(--text-muted);">Reviewed on: ${new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</div>
+                                <div><span class="status-badge ${statusLower}">${status}</span></div>
+                                <div style="font-size: 0.82rem; color: var(--text-muted);">Created on: ${new Date(createdAt).toLocaleDateString()}</div>
+                                <div style="font-size: 0.82rem; color: var(--text-muted);">Reviewed on: ${new Date(updatedAt || createdAt).toLocaleDateString()}</div>
                             </div>
-                            <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
+                            <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(generatedSql)}" data-query="${encodeURIComponent(userQuery)}" data-results="${encodeURIComponent(resultData)}"></div>
                         </div>
-                    `).join('');
+                    `}).join('');
                 }
             }
         }
     } catch (e) {
+        console.error("fetchPendingReviews error:", e);
         list.innerHTML = '<p style="color: red;">Error loading reviews.</p>';
         if (compList) compList.innerHTML = '<p style="color: red;">Error loading reviews.</p>';
     }
@@ -1247,7 +1278,8 @@ function selectReview(id) {
     
     // Update badge and buttons if completed
     const report = window._limsReports ? window._limsReports.find(r => r.id === id) : null;
-    if (report && report.status.toUpperCase() !== 'PENDING') {
+    const status = report && report.status ? report.status.toUpperCase() : "";
+    if (report && status !== 'PENDING') {
         document.getElementById('rejectBtn').style.display = 'none';
         document.getElementById('approveBtn').style.display = 'none';
         document.getElementById('detailStatusBadge').className = `status-badge ${report.status.toLowerCase()}`;
@@ -1425,6 +1457,10 @@ function openSampleCreation() {
     const successMsg = document.getElementById('saveSuccessMsg');
     if (successMsg) successMsg.style.display = 'none';
 
+    // Show form action buttons
+    const actions = document.getElementById('sampleFormActions');
+    if (actions) actions.style.display = 'flex';
+
     // Reset and show mic ripples animation
     const ripples = document.getElementById('micRipples');
     if (ripples) ripples.style.display = 'block';
@@ -1454,6 +1490,12 @@ function toggleVoiceExtraction() {
         alert("Your browser does not support Speech Recognition. Please use Chrome.");
         return;
     }
+    
+    // Hide success message and show form actions when starting voice extraction
+    const successMsg = document.getElementById('saveSuccessMsg');
+    if (successMsg) successMsg.style.display = 'none';
+    const actions = document.getElementById('sampleFormActions');
+    if (actions) actions.style.display = 'flex';
     
     const micBtn = document.getElementById('micBtn');
     const ripples = document.getElementById('micRipples');
@@ -1643,5 +1685,9 @@ function saveSample(e) {
         btn.innerHTML = origText;
         btn.disabled = false;
         if (successMsg) successMsg.style.display = 'flex';
+        
+        // Hide form actions after successful save until voice extraction restarts
+        const actions = document.getElementById('sampleFormActions');
+        if (actions) actions.style.display = 'none';
     }, 800);
 }
