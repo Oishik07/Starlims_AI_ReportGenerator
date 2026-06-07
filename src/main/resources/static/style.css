@@ -4,18 +4,26 @@
 
 :root {
     --sl-blue:       #0f4b8f;
+    --starlims-blue: #0f4b8f;
     --sl-blue-light: #1a6fd4;
     --sl-navy:       #1a2b4a;
     --sl-navy-2:     #2c3e6b;
     --ai-purple:     #5b3fdc;
     --bg:            #eef2f8;
     --surface:       #ffffff;
+    --surface-white: #ffffff;
     --border:        #e4e8f0;
+    --border-soft:   #e4e8f0;
     --text:          #1a2b4a;
+    --text-dark:     #1a2b4a;
+    --text-muted:    #6b7a99;
     --muted:         #6b7a99;
     --green:         #34a853;
     --yellow:        #f9ab00;
     --red:           #e53935;
+    --shadow-sm:     0 1px 2px rgba(15, 75, 143, 0.04);
+    --shadow-md:     0 4px 12px rgba(15, 75, 143, 0.08);
+    --shadow-lg:     0 12px 24px rgba(15, 75, 143, 0.12);
 }
 
 /* ── Reset & Base ─────────────────────────────── */
@@ -282,6 +290,10 @@ textarea:focus {
 
 .primary-btn:disabled::before,
 .primary-btn:disabled::after {
+    display: none;
+}
+
+.primary-btn.no-icon::before {
     display: none;
 }
 
@@ -1389,24 +1401,31 @@ textarea:focus {
 }
 
 .review-item {
-    padding: 1rem;
-    border: 1px solid var(--border-soft);
-    border-radius: 12px;
-    margin-bottom: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.85rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-    background: #fafafa;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(15, 75, 143, 0.06);
+    display: flex;
+    flex-direction: column;
 }
 
 .review-item:hover {
-    border-color: var(--starlims-blue);
-    background: #fff;
-    box-shadow: var(--shadow-sm);
+    border-color: rgba(255, 255, 255, 0.9);
+    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 100%);
+    box-shadow: 0 8px 24px rgba(15, 75, 143, 0.12);
+    transform: translateY(-2px);
 }
 
 .review-item.active {
     border-color: var(--starlims-blue);
-    background: #eff6ff;
+    background: linear-gradient(135deg, #eff6ff 0%, #e0eaf5 100%);
+    box-shadow: 0 4px 16px rgba(15, 75, 143, 0.08);
 }
 
 .review-item-header {
@@ -1526,6 +1545,24 @@ textarea:focus {
 .status-badge.approved {
     background: #d1fae5;
     color: #065f46;
+}
+
+.status-badge.rejected {
+    background: #fdecea;
+    color: #b71c1c;
+}
+
+.rejected-theme {
+    background: #fdf5f5;
+    pointer-events: none;
+    opacity: 0.9;
+    filter: grayscale(0.5);
+}
+.rejected-theme .app-header,
+.rejected-theme #newReportBtnContainer,
+.rejected-theme .review-action-section {
+    pointer-events: auto;
+    filter: none;
 }
 
 /* ── Send for review button ── */

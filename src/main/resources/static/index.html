@@ -23,16 +23,14 @@
             <div class="login-header">
                 <img src="logo.png" alt="STARLIMS" class="login-logo" onerror="this.style.display='none'; document.getElementById('altLoginLogo').style.display='block';">
                 <h1 id="altLoginLogo" style="color:#0f4b8f; font-weight:700; margin:0; font-size:24px; display:none;">STARLIMS</h1>
-                <h2>Starlims</h2>
+                <h2>Starlims AI</h2>
                 <p>Select your role to continue</p>
             </div>
             <div class="role-buttons">
                 <button onclick="loginAs('Lab Admin')" class="role-btn lab-admin-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                     Lab Admin
                 </button>
                 <button onclick="loginAs('Lims Admin')" class="role-btn lims-admin-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     Lims Admin
                 </button>
             </div>
@@ -359,7 +357,7 @@
             <textarea id="rejectReasonInput" rows="4" style="width: 100%; border: 1px solid var(--border-soft); border-radius: 8px; padding: 10px; font-family: inherit; font-size: 0.9rem;" placeholder="e.g., The SQL query does not filter by correct date range..."></textarea>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
                 <button class="secondary-btn" onclick="closeRejectDialog()">Cancel</button>
-                <button class="primary-btn" style="background: var(--red);" onclick="submitRejectReview()">Submit Rejection</button>
+                <button class="primary-btn no-icon" style="background: var(--red);" onclick="submitRejectReview()">Submit Rejection</button>
             </div>
         </div>
     </div>

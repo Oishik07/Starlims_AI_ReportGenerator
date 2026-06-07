@@ -53,6 +53,7 @@ function proceedLogin(role) {
             document.getElementById('limsAdminBody').style.display = 'none';
             document.getElementById('reportStatusBtn').style.display = 'block';
             document.getElementById('chatFabBtn').style.display = 'inline-flex';
+            document.querySelector('.app-title').innerText = 'AI REPORT GENERATOR';
         } else if (role === 'Lims Admin') {
             document.querySelector('.main-col').style.display = 'none';
             const rightCol = document.getElementById('rightCol');
@@ -60,6 +61,7 @@ function proceedLogin(role) {
             document.getElementById('limsAdminBody').style.display = 'flex';
             document.getElementById('reportStatusBtn').style.display = 'none';
             document.getElementById('chatFabBtn').style.display = 'none';
+            document.querySelector('.app-title').innerText = 'REPORT REVIEWER';
             fetchPendingReviews();
         }
     }, 300);
@@ -78,6 +80,7 @@ function logout() {
         loginModal.offsetHeight; // trigger reflow
         loginModal.style.animation = 'fadeIn 0.3s ease';
         
+        wrapper.classList.remove('rejected-theme');
         document.getElementById('headerActions').style.display = 'none';
         
         // Reset UI
@@ -106,6 +109,8 @@ function logout() {
 function resetToGenerate() {
     document.getElementById('newReportBtnContainer').style.display = 'none';
     document.getElementById('askAiContainer').style.display = 'block';
+    
+    document.querySelector('.app-wrapper').classList.remove('rejected-theme');
     
     const vrDetails = document.getElementById('viewReportDetails');
     if(vrDetails) vrDetails.style.display = 'none';
@@ -1104,6 +1109,12 @@ async function openViewReport(id) {
                 const dateEl = document.getElementById('viewReportDate');
                 if (dateEl) dateEl.innerText = new Date(report.createdAt).toLocaleDateString();
             }
+        }
+
+        if (report.status === 'REJECTED') {
+            document.querySelector('.app-wrapper').classList.add('rejected-theme');
+        } else {
+            document.querySelector('.app-wrapper').classList.remove('rejected-theme');
         }
 
         // Process data array and pagination
