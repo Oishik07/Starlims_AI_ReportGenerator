@@ -53,7 +53,7 @@ function proceedLogin(role) {
             document.getElementById('limsAdminBody').style.display = 'none';
             document.getElementById('reportStatusBtn').style.display = 'block';
             document.getElementById('chatFabBtn').style.display = 'inline-flex';
-            document.getElementById('sampleCreationHeader').style.display = 'flex';
+            document.getElementById('registerSampleBtnHeader').style.display = 'flex';
             document.querySelector('.app-title').innerText = 'AI REPORT GENERATOR';
         } else if (role === 'Lims Admin') {
             document.querySelector('.main-col').style.display = 'none';
@@ -120,7 +120,7 @@ function resetToGenerate() {
     if(vrDetails) vrDetails.style.display = 'none';
 
     if (currentUserRole === 'Lab Admin') {
-        const sch = document.getElementById('sampleCreationHeader');
+        const sch = document.getElementById('registerSampleBtnHeader');
         if (sch) sch.style.display = 'flex';
     }
     const scs = document.getElementById('sampleCreationSection');
@@ -997,7 +997,7 @@ async function openViewReport(id) {
     document.getElementById('askAiContainer').style.display = 'none';
     document.getElementById('newReportBtnContainer').style.display = 'block';
     
-    const sch = document.getElementById('sampleCreationHeader');
+    const sch = document.getElementById('registerSampleBtnHeader');
     if (sch) sch.style.display = 'none';
     
     // Reset views
@@ -1422,31 +1422,102 @@ function openSampleCreation() {
     if (rightCol) rightCol.style.display = 'none';
 
     document.getElementById('sampleForm').reset();
-    document.getElementById('sampleAiInput').value = '';
+    
+    // Hide FAB
+    const fab = document.getElementById('chatFabBtn');
+    if (fab) fab.style.display = 'none';
 
-    const ch = document.getElementById('sampleCreationHeader');
+    const ch = document.getElementById('registerSampleBtnHeader');
     if (ch) ch.style.display = 'none';
     document.getElementById('sampleCreationSection').style.display = 'block';
 }
 
 function closeSampleCreation() {
+    // Show FAB again
+    const fab = document.getElementById('chatFabBtn');
+    if (fab && currentUserRole === 'Lab Admin') fab.style.display = 'inline-flex';
+
     document.getElementById('sampleCreationSection').style.display = 'none';
     resetToGenerate();
-    const ch = document.getElementById('sampleCreationHeader');
+    const ch = document.getElementById('registerSampleBtnHeader');
     if (ch) ch.style.display = 'flex';
 }
 
-async function extractSampleData() {
-    const speechText = document.getElementById('sampleAiInput').value.trim();
-    if (!speechText) {
-        alert('Please enter some text to extract.');
+let recognition;
+let isRecording = false;
+let recordedText = "";
+
+function toggleVoiceExtraction() {
+    if (!('webkitSpeechRecognition' in window)) {
+        alert("Your browser does not support Speech Recognition. Please use Chrome.");
         return;
     }
+    
+    const micBtn = document.getElementById('micBtn');
+    const ripples = document.getElementById('micRipples');
+    const statusText = document.getElementById('micStatusText');
+    const micIcon = document.getElementById('micIcon');
+    
+    if (isRecording) {
+        if (recognition) recognition.stop();
+        return;
+    }
+    
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = function() {
+        isRecording = true;
+        recordedText = "";
+        ripples.style.display = 'block';
+        micBtn.style.background = 'var(--ai-purple)';
+        ripples.style.borderColor = 'var(--ai-purple)';
+        statusText.innerHTML = "Listening... <span style='font-size:0.8rem;color:var(--sl-blue);cursor:pointer;' onclick='toggleVoiceExtraction()'>[Stop]</span>";
+    };
+    
+    recognition.onresult = function(event) {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
+        recordedText += finalTranscript;
+        statusText.innerText = "Listening: " + (recordedText + interimTranscript).substring(0, 50) + "...";
+    };
+    
+    recognition.onend = function() {
+        isRecording = false;
+        ripples.style.display = 'none';
+        micBtn.style.background = 'var(--sl-blue)';
+        statusText.innerText = "Processing voice data...";
+        if (recordedText.trim().length > 0) {
+            extractSampleDataFromText(recordedText);
+        } else {
+            statusText.innerText = "No voice detected. Click to try again.";
+        }
+    };
+    
+    recognition.onerror = function(event) {
+        isRecording = false;
+        ripples.style.display = 'none';
+        micBtn.style.background = 'var(--sl-blue)';
+        statusText.innerText = "Error picking up voice. Try again.";
+    };
+    
+    recognition.start();
+}
 
-    const btn = document.getElementById('sampleAiExtractBtn');
-    const origText = btn.innerHTML;
-    btn.innerHTML = '<div class="spinner-ring" style="width:14px;height:14px;border-color:rgba(255,255,255,0.3);border-top-color:#fff;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Extracting...';
-    btn.disabled = true;
+async function extractSampleDataFromText(speechText) {
+    if (!speechText) return;
+
+    const statusText = document.getElementById('micStatusText');
+    statusText.innerHTML = '<div class="spinner-ring" style="width:14px;height:14px;border-color:rgba(15,75,143,0.3);border-top-color:var(--sl-blue);display:inline-block;vertical-align:middle;margin-right:6px;"></div> Extracting fields via AI...';
 
     try {
         const promptText = "You are a data extraction tool. Extract the following fields from the user's speech and return ONLY a raw JSON object, no markdown formatting, no backticks, no other text.\nFields: inventoryId, materialCode, supplierCode, catalog, materialName, supplierName, amountLeft, concentration, owner, manufacturer, lot, expiry.\nIf a field is not found, leave it as empty string.\n\nUser Speech: \"" + speechText + "\"";
@@ -1488,17 +1559,17 @@ async function extractSampleData() {
             }
         }
 
-        document.getElementById('sampleAiInput').style.borderColor = 'var(--green)';
+        statusText.innerHTML = '<span style="color:var(--green)">✨ Success! Fields populated.</span>';
         setTimeout(() => {
-            document.getElementById('sampleAiInput').style.borderColor = 'var(--border)';
-        }, 2000);
+            statusText.innerText = "Click the mic to speak the sample details...";
+        }, 3000);
 
     } catch (e) {
         console.error('AI Extraction Error:', e);
-        alert('Failed to parse data. Please check if backend AI is available.');
-    } finally {
-        btn.innerHTML = origText;
-        btn.disabled = false;
+        statusText.innerHTML = '<span style="color:var(--red)">Failed to extract data.</span>';
+        setTimeout(() => {
+            statusText.innerText = "Click the mic to speak the sample details...";
+        }, 3000);
     }
 }
 

@@ -83,6 +83,11 @@
         
         <div class="header-actions" id="headerActions" style="display:none;">
             <span id="currentUserDisplay" class="current-user-badge">Role</span>
+            <!-- REGISTER SAMPLE BUTTON -->
+            <button id="registerSampleBtnHeader" class="primary-btn" onclick="openSampleCreation()" style="display:none; padding: 0.45rem 1rem; border-radius: 20px; font-size: 0.85rem; background: linear-gradient(135deg, var(--sl-blue), var(--ai-purple)); border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 0.4rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Register Sample
+            </button>
             <button id="reportStatusBtn" class="secondary-btn" onclick="openReportStatus()" style="display:none; border: 1px solid var(--sl-blue); color: var(--sl-blue);">Report Status</button>
             <button id="logoutBtn" class="secondary-btn" onclick="logout()" style="border: 1px solid var(--red); color: var(--red);">Logout</button>
         </div>
@@ -93,13 +98,8 @@
 
         <!-- LEFT: Main content -->
         <div class="main-col">
-            <!-- SAMPLE CREATION BUTTON -->
-            <div id="sampleCreationHeader" style="display:none; margin-bottom: 1.25rem; justify-content: flex-end;">
-                <button class="primary-btn" onclick="openSampleCreation()" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; display:flex; align-items:center; gap: 0.4rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Create New Sample
-                </button>
-            </div>
+            <!-- SAMPLE CREATION BUTTON (Moved to Header, kept here hidden to avoid script errors) -->
+            <div id="sampleCreationHeader" style="display:none;"></div>
 
             <!-- SAMPLE CREATION VIEW -->
             <div id="sampleCreationSection" style="display:none; animation: fadeUp 0.4s ease;">
@@ -111,17 +111,13 @@
                 <div style="background: var(--surface); border: 1px solid var(--border); border-top:none; border-radius: 0 0 8px 8px; padding: 1.5rem;">
                     
                     <!-- AI Autofill Section -->
-                    <div style="background: #f8faff; border: 1px dashed var(--sl-blue-light); border-radius: 12px; padding: 1.25rem; margin-bottom: 2rem;">
-                        <h4 style="margin: 0 0 0.75rem 0; color: var(--sl-blue); display:flex; align-items:center; gap:0.5rem;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 7.1"/><path d="M12 12l9.9-4.9"/></svg>
-                            AI Voice/Text Extraction
-                        </h4>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Provide unstructured data (e.g., "The inventory ID is 8251179, material is ACN Water, supplier is ACME...") and let AI extract it to pre-fill the form.</p>
-                        <textarea id="sampleAiInput" rows="2" style="width: 100%; border-radius: 12px; padding: 1rem; border: 1px solid var(--border); font-size: 0.9rem; min-height: 60px; box-shadow: none;" placeholder="Say or type sample details here..."></textarea>
-                        <div style="display:flex; justify-content:flex-end; margin-top: 0.75rem;">
-                            <button id="sampleAiExtractBtn" class="primary-btn no-icon" onclick="extractSampleData()" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem;">
-                                ✨ Autofill via AI
+                    <div style="margin-bottom: 2rem;">
+                        <div style="display:flex; justify-content:center; align-items:center;">
+                            <button id="micBtn" type="button" onclick="toggleVoiceExtraction()" style="background: var(--sl-blue); border: none; border-radius: 50%; width: 60px; height: 60px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(15, 75, 143, 0.3); transition: all 0.3s ease; position: relative;">
+                                <svg id="micIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="z-index: 2;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                                <div id="micRipples" style="display:none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--sl-blue); animation: ripple 1.5s infinite ease-out;"></div>
                             </button>
+                            <div id="micStatusText" style="margin-left: 1.25rem; color: var(--text-muted); font-size: 0.95rem;">Click the mic to speak the sample details...</div>
                         </div>
                     </div>
 
@@ -297,10 +293,10 @@
                     <div style="display:flex; flex-direction:column; gap:0.5rem;">
                         <div style="display:flex; align-items:center; gap:0.75rem;">
                             <span id="viewReportBadge" class="status-badge"></span>
-                            <span style="font-size: 0.85rem; color: var(--text-muted);">Created on: <span id="viewReportDate" style="font-weight: 500;"></span></span>
+                            <span style="font-size: 0.85rem; color: var(--text-muted); display:inline-flex; align-items:center; gap:0.5rem;">Created on: <span id="viewReportDate" style="font-weight: 500;"></span></span>
                         </div>
-                        <div id="viewReportUpdateDate" style="font-size: 0.85rem; color: var(--text-muted); display:none;">
-                            Actioned on: <span id="viewReportUpdateDateValue" style="font-weight: 500;"></span>
+                        <div id="viewReportUpdateDate" style="font-size: 0.85rem; color: var(--text-muted); display:none; align-items:center; gap:0.5rem;">
+                            Reviewed on: <span id="viewReportUpdateDateValue" style="font-weight: 500; color: var(--text);"></span>
                         </div>
                         <div id="viewReportRejectReason" style="display:none; font-size: 0.85rem; color: var(--red); background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px;">
                             <strong>Rejection Reason:</strong> <span id="viewReportRejectReasonValue"></span>
@@ -401,6 +397,9 @@
                     <!-- populated by JS -->
                 </div>
             </div>
+            
+            <div style="height: 2px; background: linear-gradient(to right, transparent, var(--border), var(--border), transparent); margin: 0.5rem 0; flex-shrink: 0;"></div>
+            
             <div style="flex: 1; min-height: 0; display:flex; flex-direction:column;">
                 <h2 style="margin-bottom: 10px; color: #0f4b8f; flex-shrink:0;">Completed Reviews</h2>
                 <div id="completedReviewsList" class="reviews-list" style="overflow-y:auto; flex:1;">
