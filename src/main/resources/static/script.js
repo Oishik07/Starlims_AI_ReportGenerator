@@ -52,7 +52,8 @@ function proceedLogin(role) {
             document.querySelector('.main-col').style.display = 'block';
             document.getElementById('limsAdminBody').style.display = 'none';
             document.getElementById('reportStatusBtn').style.display = 'block';
-            document.getElementById('chatFabBtn').style.display = 'inline-flex';
+            const chatFabLab = document.getElementById('chatFabBtn');
+            if (chatFabLab) chatFabLab.style.display = 'inline-flex';
             document.getElementById('registerSampleBtnHeader').style.display = 'flex';
             document.querySelector('.app-title').innerText = 'AI REPORT GENERATOR';
         } else if (role === 'Lims Admin') {
@@ -61,7 +62,8 @@ function proceedLogin(role) {
             if(rightCol) rightCol.style.display = 'none';
             document.getElementById('limsAdminBody').style.display = 'flex';
             document.getElementById('reportStatusBtn').style.display = 'none';
-            document.getElementById('chatFabBtn').style.display = 'none';
+            const chatFabLims = document.getElementById('chatFabBtn');
+            if (chatFabLims) chatFabLims.style.display = 'none';
             document.getElementById('registerSampleBtnHeader').style.display = 'none';
             document.querySelector('.app-title').innerText = 'REPORT REVIEWER';
             fetchPendingReviews();
