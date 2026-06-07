@@ -122,6 +122,8 @@ function resetToGenerate() {
     if (currentUserRole === 'Lab Admin') {
         const sch = document.getElementById('registerSampleBtnHeader');
         if (sch) sch.style.display = 'flex';
+        const chatFab = document.getElementById('chatFabBtn');
+        if (chatFab) chatFab.style.display = 'inline-flex';
     }
     const scs = document.getElementById('sampleCreationSection');
     if (scs) scs.style.display = 'none';
@@ -1122,6 +1124,10 @@ async function openViewReport(id) {
                     badge.className = `status-badge ${report.status.toLowerCase()}`;
                     badge.innerText = report.status;
                 }
+                const createdDateEl = document.getElementById('viewReportDate');
+                if (createdDateEl) {
+                    createdDateEl.innerText = new Date(report.createdAt).toLocaleDateString();
+                }
                 // Set update date
                 const updateDateEl = document.getElementById('viewReportUpdateDate');
                 if (report.status !== 'PENDING') {
@@ -1218,10 +1224,13 @@ async function fetchPendingReviews() {
                         <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
                             <div class="review-item-header">
                                 <span class="review-item-title">Report #${r.id}</span>
-                                <span class="review-item-date">${new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</span>
                             </div>
                             <div class="review-item-query">${r.userQuery}</div>
-                            <div style="margin-top: 5px;"><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></div>
+                            <div style="margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                                <div><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></div>
+                                <div style="font-size: 0.82rem; color: var(--text-muted);">Created on: ${new Date(r.createdAt).toLocaleDateString()}</div>
+                                <div style="font-size: 0.82rem; color: var(--text-muted);">Reviewed on: ${new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</div>
+                            </div>
                             <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
                         </div>
                     `).join('');
@@ -1423,20 +1432,14 @@ function openSampleCreation() {
 
     document.getElementById('sampleForm').reset();
     
-    // Hide FAB
-    const fab = document.getElementById('chatFabBtn');
-    if (fab) fab.style.display = 'none';
-
     const ch = document.getElementById('registerSampleBtnHeader');
     if (ch) ch.style.display = 'none';
+    const chatFab = document.getElementById('chatFabBtn');
+    if (chatFab) chatFab.style.display = 'none';
     document.getElementById('sampleCreationSection').style.display = 'block';
 }
 
 function closeSampleCreation() {
-    // Show FAB again
-    const fab = document.getElementById('chatFabBtn');
-    if (fab && currentUserRole === 'Lab Admin') fab.style.display = 'inline-flex';
-
     document.getElementById('sampleCreationSection').style.display = 'none';
     resetToGenerate();
     const ch = document.getElementById('registerSampleBtnHeader');
@@ -1472,8 +1475,15 @@ function toggleVoiceExtraction() {
         isRecording = true;
         recordedText = "";
         ripples.style.display = 'block';
-        micBtn.style.background = 'var(--ai-purple)';
-        ripples.style.borderColor = 'var(--ai-purple)';
+        micBtn.style.background = 'var(--red)';
+        micBtn.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6)';
+        
+        // Change to Pause icon
+        const wrapper = document.getElementById('micIconWrapper');
+        if(wrapper) {
+            wrapper.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        }
+
         statusText.innerHTML = "Listening... <span style='font-size:0.8rem;color:var(--sl-blue);cursor:pointer;' onclick='toggleVoiceExtraction()'>[Stop]</span>";
     };
     
@@ -1488,13 +1498,26 @@ function toggleVoiceExtraction() {
             }
         }
         recordedText += finalTranscript;
-        statusText.innerText = "Listening: " + (recordedText + interimTranscript).substring(0, 50) + "...";
+        
+        // Show up to ~70 words
+        let words = (recordedText + interimTranscript).trim().split(/\s+/);
+        let displayStr = words.slice(-70).join(' ');
+        if(words.length > 70) displayStr = "..." + displayStr;
+        
+        statusText.innerText = displayStr;
     };
     
     recognition.onend = function() {
         isRecording = false;
         ripples.style.display = 'none';
         micBtn.style.background = 'var(--sl-blue)';
+        micBtn.style.boxShadow = '0 4px 15px rgba(15, 75, 143, 0.3)';
+        
+        // Restore Mic icon
+        const wrapper = document.getElementById('micIconWrapper');
+        if(wrapper) {
+            wrapper.innerHTML = '<svg id="micIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>';
+        }
         statusText.innerText = "Processing voice data...";
         if (recordedText.trim().length > 0) {
             extractSampleDataFromText(recordedText);
@@ -1520,7 +1543,7 @@ async function extractSampleDataFromText(speechText) {
     statusText.innerHTML = '<div class="spinner-ring" style="width:14px;height:14px;border-color:rgba(15,75,143,0.3);border-top-color:var(--sl-blue);display:inline-block;vertical-align:middle;margin-right:6px;"></div> Extracting fields via AI...';
 
     try {
-        const promptText = "You are a data extraction tool. Extract the following fields from the user's speech and return ONLY a raw JSON object, no markdown formatting, no backticks, no other text.\nFields: inventoryId, materialCode, supplierCode, catalog, materialName, supplierName, amountLeft, concentration, owner, manufacturer, lot, expiry.\nIf a field is not found, leave it as empty string.\n\nUser Speech: \"" + speechText + "\"";
+        const promptText = "You are an AI data extraction tool. Extract the sample fields from the user's speech.\nThe form has these fields: inventoryId (mandatory), materialName (mandatory), materialCode, supplierCode, catalog, supplierName, amountLeft, concentration, owner, manufacturer, lot, expiry.\nAlso capture any other additional fields mentioned as a single summarized string in 'additionalInfo'.\nReturn ONLY a valid JSON object (no markdown, no backticks) with this structure:\n{\n  \"fields\": { \"inventoryId\": \"...\", \"materialName\": \"...\", \"additionalInfo\": \"...\" },\n  \"missingMandatory\": [\"list of missing mandatory fields\"],\n  \"messageToSpeak\": \"A short, natural sentence asking the user to provide the missing mandatory fields, or empty string if none are missing.\"\n}\nUser Speech: \"" + speechText + "\"";
 
         const resp = await fetch('/ai/chat', {
             method: 'POST',
