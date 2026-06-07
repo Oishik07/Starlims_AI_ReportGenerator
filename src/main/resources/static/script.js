@@ -923,6 +923,10 @@ async function sendForReview() {
         if (resp.ok) {
             btn.style.display = 'none';
             successMsg.style.display = 'flex';
+            // Refresh pending reviews for Lims Admin if visible
+            if (document.getElementById('limsAdminBody')?.style.display !== 'none') {
+                fetchPendingReviews();
+            }
         } else {
             throw new Error('Failed to send report for review.');
         }
