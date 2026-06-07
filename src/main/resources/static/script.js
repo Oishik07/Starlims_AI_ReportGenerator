@@ -1121,6 +1121,7 @@ async function openViewReport(id) {
                 if (badge) {
                     badge.className = `status-badge ${report.status.toLowerCase()}`;
                     badge.innerText = report.status;
+                }
                 // Set update date
                 const updateDateEl = document.getElementById('viewReportUpdateDate');
                 if (report.status !== 'PENDING') {
