@@ -99,6 +99,9 @@ function logout() {
         const newRepBtn = document.getElementById('newReportBtnContainer');
         if(newRepBtn) newRepBtn.style.display = 'none';
         
+        const vrDetails = document.getElementById('viewReportDetails');
+        if(vrDetails) vrDetails.style.display = 'none';
+        
         globalReportData = null;
         currentGeneratedSql = "";
         currentSummary = "";
@@ -962,6 +965,7 @@ async function fetchReportStatus() {
                     <td>#${r.id}</td>
                     <td title="${r.userQuery}" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.userQuery}</td>
                     <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td>${r.status === 'PENDING' ? '-' : new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</td>
                     <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
                     <td style="text-align:center;">
                         <button class="secondary-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="openViewReport(${r.id})">View Report</button>
@@ -970,7 +974,7 @@ async function fetchReportStatus() {
             `).join('');
         }
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: red;">Error loading status.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Error loading status.</td></tr>';
     }
 }
 
@@ -1105,16 +1109,30 @@ async function openViewReport(id) {
                 if (badge) {
                     badge.className = `status-badge ${report.status.toLowerCase()}`;
                     badge.innerText = report.status;
+                // Set update date
+                const updateDateEl = document.getElementById('viewReportUpdateDate');
+                if (report.status !== 'PENDING') {
+                    if (updateDateEl) {
+                        updateDateEl.style.display = 'block';
+                        document.getElementById('viewReportUpdateDateValue').innerText = new Date(report.updatedAt || report.createdAt).toLocaleDateString();
+                    }
+                } else {
+                    if (updateDateEl) updateDateEl.style.display = 'none';
                 }
-                const dateEl = document.getElementById('viewReportDate');
-                if (dateEl) dateEl.innerText = new Date(report.createdAt).toLocaleDateString();
             }
         }
 
         if (report.status === 'REJECTED') {
             document.querySelector('.app-wrapper').classList.add('rejected-theme');
+            const rejectReasonEl = document.getElementById('viewReportRejectReason');
+            if (rejectReasonEl) {
+                rejectReasonEl.style.display = 'block';
+                document.getElementById('viewReportRejectReasonValue').innerText = report.rejectionReason || 'No reason provided';
+            }
         } else {
             document.querySelector('.app-wrapper').classList.remove('rejected-theme');
+            const rejectReasonEl = document.getElementById('viewReportRejectReason');
+            if (rejectReasonEl) rejectReasonEl.style.display = 'none';
         }
 
         // Process data array and pagination
@@ -1148,33 +1166,58 @@ async function openViewReport(id) {
 // Lims Admin Functions
 async function fetchPendingReviews() {
     const list = document.getElementById('pendingReviewsList');
+    const compList = document.getElementById('completedReviewsList');
     list.innerHTML = '<p style="color: #64748b; text-align: center;">Loading queue...</p>';
+    if (compList) compList.innerHTML = '<p style="color: #64748b; text-align: center;">Loading...</p>';
     document.getElementById('emptyDetailPanel').style.display = 'flex';
     document.getElementById('reviewDetailPanel').style.display = 'none';
     currentSelectedReviewId = null;
 
     try {
-        const resp = await fetch('/api/reviews?status=PENDING');
+        const resp = await fetch('/api/reviews');
         if (resp.ok) {
             const data = await resp.json();
-            if (data.length === 0) {
+            window._limsReports = data;
+            
+            const pendingData = data.filter(r => r.status === 'PENDING');
+            const completedData = data.filter(r => r.status !== 'PENDING');
+            
+            if (pendingData.length === 0) {
                 list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
-                return;
+            } else {
+                list.innerHTML = pendingData.map(r => `
+                    <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
+                        <div class="review-item-header">
+                            <span class="review-item-title">Report #${r.id}</span>
+                            <span class="review-item-date">${new Date(r.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div class="review-item-query">${r.userQuery}</div>
+                        <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
+                    </div>
+                `).join('');
             }
             
-            list.innerHTML = data.map(r => `
-                <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
-                    <div class="review-item-header">
-                        <span class="review-item-title">Report #${r.id}</span>
-                        <span class="review-item-date">${new Date(r.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div class="review-item-query">${r.userQuery}</div>
-                    <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
-                </div>
-            `).join('');
+            if (compList) {
+                if (completedData.length === 0) {
+                    compList.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No completed reviews.</div>';
+                } else {
+                    compList.innerHTML = completedData.map(r => `
+                        <div class="review-item" onclick="selectReview(${r.id})" id="review-item-${r.id}">
+                            <div class="review-item-header">
+                                <span class="review-item-title">Report #${r.id}</span>
+                                <span class="review-item-date">${new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div class="review-item-query">${r.userQuery}</div>
+                            <div style="margin-top: 5px;"><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></div>
+                            <div style="display:none;" id="review-data-${r.id}" data-sql="${encodeURIComponent(r.generatedSql)}" data-query="${encodeURIComponent(r.userQuery)}" data-results="${encodeURIComponent(r.resultData)}"></div>
+                        </div>
+                    `).join('');
+                }
+            }
         }
     } catch (e) {
         list.innerHTML = '<p style="color: red;">Error loading reviews.</p>';
+        if (compList) compList.innerHTML = '<p style="color: red;">Error loading reviews.</p>';
     }
 }
 
@@ -1193,6 +1236,20 @@ function selectReview(id) {
     try {
         results = JSON.parse(decodeURIComponent(dataEl.getAttribute('data-results')));
     } catch (e) { console.error("Failed to parse results JSON", e); }
+    
+    // Update badge and buttons if completed
+    const report = window._limsReports ? window._limsReports.find(r => r.id === id) : null;
+    if (report && report.status !== 'PENDING') {
+        document.getElementById('rejectBtn').style.display = 'none';
+        document.getElementById('approveBtn').style.display = 'none';
+        document.getElementById('detailStatusBadge').className = `status-badge ${report.status.toLowerCase()}`;
+        document.getElementById('detailStatusBadge').innerText = report.status;
+    } else {
+        document.getElementById('rejectBtn').style.display = 'inline-block';
+        document.getElementById('approveBtn').style.display = 'inline-block';
+        document.getElementById('detailStatusBadge').className = `status-badge pending`;
+        document.getElementById('detailStatusBadge').innerText = 'PENDING';
+    }
     
     // Populate details
     document.getElementById('detailUserQuery').innerText = query;
@@ -1226,6 +1283,21 @@ function selectReview(id) {
         tbody.innerHTML = '<tr><td style="text-align:center;">No data in snapshot.</td></tr>';
     }
     
+    // Fetch total row count
+    document.getElementById('detailRowCount').innerText = ' (Loading...)';
+    let countSql = sql.replace(/;+$/, '').trim().replace(/LIMIT\s+\d+/gi, '').replace(/OFFSET\s+\d+/gi, '');
+    countSql = `SELECT COUNT(*) AS total_count FROM (${countSql}) AS temp_count;`;
+    fetch('/ai/sql/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: query, sql: countSql, summary: '', confidence: 'high', reason: '' })
+    }).then(r => r.json()).then(res => {
+        if (res.data && res.data.length > 0) {
+            const cKey = Object.keys(res.data[0]).find(k => k.toLowerCase().includes('count'));
+            if (cKey) document.getElementById('detailRowCount').innerText = `(${res.data[0][cKey]} total rows)`;
+        }
+    }).catch(e => { document.getElementById('detailRowCount').innerText = ''; });
+    
     // Switch panels
     document.getElementById('emptyDetailPanel').style.display = 'none';
     document.getElementById('reviewDetailPanel').style.display = 'flex';
@@ -1253,10 +1325,7 @@ async function approveCurrentReview() {
             document.getElementById('reviewDetailPanel').style.display = 'none';
             
             // Check if queue empty
-            const list = document.getElementById('pendingReviewsList');
-            if (list.children.length === 0) {
-                list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
-            }
+            fetchPendingReviews();
         } else {
             throw new Error('Approval failed');
         }
@@ -1310,10 +1379,7 @@ async function submitRejectReview() {
             document.getElementById('reviewDetailPanel').style.display = 'none';
             
             // Check if queue empty
-            const list = document.getElementById('pendingReviewsList');
-            if (list.children.length === 0) {
-                list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
-            }
+            fetchPendingReviews();
         } else {
             throw new Error('Rejection failed');
         }
