@@ -62,6 +62,7 @@ function proceedLogin(role) {
             document.getElementById('limsAdminBody').style.display = 'flex';
             document.getElementById('reportStatusBtn').style.display = 'none';
             document.getElementById('chatFabBtn').style.display = 'none';
+            document.getElementById('registerSampleBtnHeader').style.display = 'none';
             document.querySelector('.app-title').innerText = 'REPORT REVIEWER';
             fetchPendingReviews();
         }
@@ -69,6 +70,7 @@ function proceedLogin(role) {
 }
 
 function logout() {
+    resetToGenerate();
     currentUserRole = null;
     const wrapper = document.querySelector('.app-wrapper');
     wrapper.style.opacity = '0';
@@ -84,29 +86,8 @@ function logout() {
         wrapper.classList.remove('rejected-theme');
         document.getElementById('headerActions').style.display = 'none';
         
-        // Reset UI
-        document.getElementById('promptInput').value = '';
-        document.getElementById('statusMessage').style.display = 'none';
-        document.getElementById('dataGrid').style.display = 'none';
-        document.getElementById('dashboardSection').style.display = 'none';
-        document.getElementById('resultsHeader').style.display = 'none';
-        
         const rightCol = document.getElementById('rightCol');
         if(rightCol) rightCol.style.display = 'none';
-        
-        const askAi = document.getElementById('askAiContainer');
-        if(askAi) askAi.style.display = 'block';
-        
-        const newRepBtn = document.getElementById('newReportBtnContainer');
-        if(newRepBtn) newRepBtn.style.display = 'none';
-        
-        const vrDetails = document.getElementById('viewReportDetails');
-        if(vrDetails) vrDetails.style.display = 'none';
-        
-        globalReportData = null;
-        currentGeneratedSql = "";
-        currentSummary = "";
-        currentOriginalQuery = "";
     }, 300);
 }
 
@@ -124,6 +105,11 @@ function resetToGenerate() {
         if (sch) sch.style.display = 'flex';
         const chatFab = document.getElementById('chatFabBtn');
         if (chatFab) chatFab.style.display = 'inline-flex';
+        
+        const appTitle = document.querySelector('.app-title');
+        if (appTitle) appTitle.innerText = 'AI REPORT GENERATOR';
+        const reportStatusBtn = document.getElementById('reportStatusBtn');
+        if (reportStatusBtn) reportStatusBtn.style.display = 'block';
     }
     const scs = document.getElementById('sampleCreationSection');
     if (scs) scs.style.display = 'none';
@@ -976,7 +962,7 @@ async function fetchReportStatus() {
                     <td>#${r.id}</td>
                     <td title="${r.userQuery}" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.userQuery}</td>
                     <td>${new Date(r.createdAt).toLocaleDateString()}</td>
-                    <td>${r.status === 'PENDING' ? '-' : new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</td>
+                    <td>${r.status.toUpperCase() === 'PENDING' ? '-' : new Date(r.updatedAt || r.createdAt).toLocaleDateString()}</td>
                     <td><span class="status-badge ${r.status.toLowerCase()}">${r.status}</span></td>
                     <td style="text-align:center;">
                         <button class="secondary-btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="openViewReport(${r.id})">View Report</button>
@@ -1130,7 +1116,7 @@ async function openViewReport(id) {
                 }
                 // Set update date
                 const updateDateEl = document.getElementById('viewReportUpdateDate');
-                if (report.status !== 'PENDING') {
+                if (report.status.toUpperCase() !== 'PENDING') {
                     if (updateDateEl) {
                         updateDateEl.style.display = 'block';
                         document.getElementById('viewReportUpdateDateValue').innerText = new Date(report.updatedAt || report.createdAt).toLocaleDateString();
@@ -1141,7 +1127,7 @@ async function openViewReport(id) {
             }
         }
 
-        if (report.status === 'REJECTED') {
+        if (report.status.toUpperCase() === 'REJECTED') {
             document.querySelector('.app-wrapper').classList.add('rejected-theme');
             const rejectReasonEl = document.getElementById('viewReportRejectReason');
             if (rejectReasonEl) {
@@ -1198,8 +1184,8 @@ async function fetchPendingReviews() {
             const data = await resp.json();
             window._limsReports = data;
             
-            const pendingData = data.filter(r => r.status === 'PENDING');
-            const completedData = data.filter(r => r.status !== 'PENDING');
+            const pendingData = data.filter(r => r.status.toUpperCase() === 'PENDING');
+            const completedData = data.filter(r => r.status.toUpperCase() !== 'PENDING');
             
             if (pendingData.length === 0) {
                 list.innerHTML = '<div style="text-align:center; padding: 2rem; color: #64748b;">No pending reviews.</div>';
@@ -1261,7 +1247,7 @@ function selectReview(id) {
     
     // Update badge and buttons if completed
     const report = window._limsReports ? window._limsReports.find(r => r.id === id) : null;
-    if (report && report.status !== 'PENDING') {
+    if (report && report.status.toUpperCase() !== 'PENDING') {
         document.getElementById('rejectBtn').style.display = 'none';
         document.getElementById('approveBtn').style.display = 'none';
         document.getElementById('detailStatusBadge').className = `status-badge ${report.status.toLowerCase()}`;
@@ -1438,6 +1424,17 @@ function openSampleCreation() {
     if (chatFab) chatFab.style.display = 'none';
     const successMsg = document.getElementById('saveSuccessMsg');
     if (successMsg) successMsg.style.display = 'none';
+
+    // Reset and show mic ripples animation
+    const ripples = document.getElementById('micRipples');
+    if (ripples) ripples.style.display = 'block';
+
+    // Change page title to Register Sample and hide Report Status button
+    const appTitle = document.querySelector('.app-title');
+    if (appTitle) appTitle.innerText = "Register Sample";
+    const reportStatusBtn = document.getElementById('reportStatusBtn');
+    if (reportStatusBtn) reportStatusBtn.style.display = 'none';
+
     document.getElementById('sampleCreationSection').style.display = 'block';
 }
 
@@ -1615,11 +1612,22 @@ async function extractSampleDataFromText(speechText) {
 
 function saveSample(e) {
     e.preventDefault();
-    const inventoryId = document.getElementById('sf_inventoryId').value;
-    const materialName = document.getElementById('sf_materialName').value;
+    const inventoryId = document.getElementById('sf_inventoryId').value.trim();
+    const materialName = document.getElementById('sf_materialName').value.trim();
     
     if (!inventoryId || !materialName) {
-        alert('Inventory ID and Material Name are mandatory.');
+        let missing = [];
+        if (!inventoryId) missing.push("Inventory ID");
+        if (!materialName) missing.push("Material Name");
+        const alertMsg = `${missing.join(" and ")} ${missing.length > 1 ? "are" : "is"} mandatory.`;
+        
+        alert(alertMsg);
+        
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(alertMsg);
+            window.speechSynthesis.speak(utterance);
+        }
         return;
     }
 
