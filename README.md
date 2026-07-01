@@ -162,12 +162,6 @@ The application never submits records automatically, ensuring users remain in co
 
 - Redis Semantic Cache
 
-### Cloud
-
-- AWS Bedrock
-- AWS Lambda
-- API Gateway
-- CloudWatch
 
 ---
 
