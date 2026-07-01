@@ -2,18 +2,24 @@
 
 > **An enterprise AI platform built with Spring Boot that enables laboratory users to generate reports and create laboratory samples using natural language while maintaining secure, human-in-the-loop approval workflows.**
 
-StarLIMS AI Engine combines **AWS Bedrock**, **Advanced RAG**, **PGVector**, **LLM Tool Calling**, and **Redis Semantic Caching** to simplify enterprise laboratory workflows. The platform allows users to interact with StarLIMS through natural language instead of manually writing SQL queries or filling lengthy forms.
+StarLIMS AI Engine combines **Advanced RAG**, **PGVector**, **LLM Tool Calling**, and **Redis Semantic Caching** to simplify enterprise laboratory workflows. The platform allows users to interact with StarLIMS through natural language instead of manually writing SQL queries or filling lengthy forms.
 
 ---
 
 # 🚀 Overview
 
-StarLIMS AI Engine introduces AI-powered capabilities into enterprise laboratory operations through two primary workflows:
+StarLIMS AI Engine is an AI-powered platform designed to simplify laboratory operations through natural language interactions.
 
-- 📊 Natural Language Report Generation
-- 🧪 AI-Assisted Sample Creation
+The platform currently supports two primary AI-powered workflows:
 
-The platform follows a role-based workflow where **Lab Admins** initiate AI-assisted operations and **LIMS Admins** review and approve AI-generated SQL before execution, ensuring governance and human oversight throughout the process.
+- 📊 **Natural Language Report Generation**
+- 🧪 **AI-Assisted Sample Creation**
+
+For report generation, the application retrieves relevant database schema using **Advanced RAG** over **300+ enterprise database tables**, generates optimized SQL using **LLM Tool Calling**, executes the query, and displays the results in a structured tabular format with Excel export support.
+
+For sample creation, users simply describe the sample through voice or chat. The AI extracts the required information, automatically fills the StarLIMS sample creation form using **LLM Tool Calling**, and saves it as a draft for verification before submission.
+
+The platform follows a role-based workflow where **Lab Admins** initiate AI-powered operations and **LIMS Admins** review and approve AI-generated SQL before execution.
 
 ---
 
@@ -25,11 +31,11 @@ The platform follows a role-based workflow where **Lab Admins** initiate AI-assi
 
 ---
 
-# ✨ Key Features
+# ✨ Features
 
 ## 📊 AI-Powered Report Generation
 
-Lab Admins can generate reports by simply describing their requirements in natural language.
+Lab Admins can generate reports simply by describing their requirements in natural language.
 
 Example:
 
@@ -42,8 +48,8 @@ The AI automatically:
 - Searches across **300+ enterprise database tables**
 - Generates optimized SQL using **LLM Tool Calling**
 - Executes the query
-- Displays results in a structured tabular format
-- Allows exporting reports directly to Excel
+- Displays structured tabular results
+- Exports reports directly to Excel
 
 ### Report Generation
 
@@ -53,7 +59,7 @@ The AI automatically:
 
 ---
 
-## 👥 Enterprise Approval Workflow
+## 👥 Human-in-the-Loop Approval Workflow
 
 ### 🧪 Lab Admin
 
@@ -80,7 +86,7 @@ LIMS Admins can:
 - Review AI-generated SQL
 - Approve or reject report requests
 - Validate generated queries before execution
-- Ensure enterprise governance and accuracy
+- Maintain governance and accuracy
 
 ### LIMS Admin Review
 
@@ -92,7 +98,7 @@ LIMS Admins can:
 
 ## 🎙️ AI-Assisted Sample Creation
 
-Lab Admins can create laboratory samples through natural language instead of manually filling lengthy forms.
+Instead of manually filling lengthy laboratory forms, Lab Admins simply describe the sample they want to create.
 
 Example:
 
@@ -100,8 +106,9 @@ Example:
 
 The AI:
 
+- Understands user intent
 - Extracts structured information
-- Uses **LLM Tool Calling** to identify required fields
+- Uses **LLM Tool Calling**
 - Automatically populates the StarLIMS sample creation form
 - Saves the request as a draft
 - Allows users to verify every field before submission
@@ -116,9 +123,47 @@ The application never submits records automatically, ensuring users remain in co
 
 ---
 
-# 🏗️ System Architecture
+# 🏗️ Application Workflow
 
-> *(Add your architecture diagram here if available.)*
+```text
+                    Lab Admin
+                        │
+        Natural Language / Voice Input
+                        │
+                        ▼
+               Spring Boot Backend
+                        │
+                Intent Analysis
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+          ▼                           ▼
+  Advanced RAG (PGVector)      LLM Tool Calling
+          │                           │
+          ▼                           ▼
+ Relevant Database Schema     SQL Generation /
+      Retrieval               Sample Draft Creation
+          │                           │
+          └─────────────┬─────────────┘
+                        ▼
+               StarLIMS Application
+                        │
+                        ▼
+             LIMS Admin Review & Approval
+                        │
+                        ▼
+        Reports / Sample Creation / Excel Export
+```
+
+---
+
+# 📈 Report Dashboard
+
+Generated reports can be viewed as structured tables and visualized through interactive charts before exporting.
+
+<p align="center">
+    <img src="StarlimsF.png" width="1000"/>
+</p>
 
 ---
 
@@ -149,58 +194,23 @@ The application never submits records automatically, ensuring users remain in co
 - LLM Tool Calling
 - Natural Language Understanding (NLU)
 
+### Databases
+
+- Oracle (StarLIMS)
+- PostgreSQL
+
 ### Vector Search
 
 - PGVector
 
-### Databases
-
-- PostgreSQL (PGVector)
-- Oracle (StarLIMS)
-
 ### Cache
 
-- Redis Semantic Cache
+- Redis
 
+### Other Technologies
 
----
-
-# 🔄 Application Workflow
-
-```text
-                    Lab Admin
-                        │
-        Natural Language / Voice Input
-                        │
-                        ▼
-               Spring Boot Backend
-                        │
-          Advanced RAG (PGVector)
-                        │
-                        ▼
-                  AWS Bedrock
-                        │
-          LLM Tool Calling & SQL Generation
-                        │
-                        ▼
-               StarLIMS Database
-                        │
-                        ▼
-             LIMS Admin Review & Approval
-                        │
-                        ▼
-         Structured Report / Excel Export
-```
-
----
-
-# 📈 Report Dashboard
-
-The generated reports can be visualized through interactive charts in addition to structured tabular results.
-
-<p align="center">
-    <img src="StarlimsF.png" width="1000"/>
-</p>
+- Apache POI (Excel Export)
+- REST APIs
 
 ---
 
@@ -212,7 +222,7 @@ Clone the repository
 git clone https://github.com/Oishik07/Starlims_AI_ReportGenerator.git
 ```
 
-Navigate to the project
+Navigate into the project
 
 ```bash
 cd Starlims_AI_ReportGenerator
@@ -229,6 +239,16 @@ REDIS_URL=
 ```
 
 Run the Spring Boot application.
+
+```bash
+./mvnw spring-boot:run
+```
+
+or
+
+```bash
+mvn spring-boot:run
+```
 
 ---
 
